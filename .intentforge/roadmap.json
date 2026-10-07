@@ -589,18 +589,18 @@
       "type": "task",
       "depth": 2,
       "locked": false,
-      "status": "in_progress",
+      "status": "done",
       "order": 12,
       "feature_id": null,
       "title": "src/features/workflow/WorkflowPage.tsx",
       "summary": "Add the placeholder Workflow page component for the /workflow route in the workflow feature folder",
-      "detail": "{\"action\":\"create\",\"description\":\"Add the placeholder Workflow page component for the /workflow route in the workflow feature folder\",\"needsFileContent\":true,\"needsMetadata\":false,\"confident\":true,\"fileStatus\":\"pending\",\"fileChangeMode\":null,\"metadataStatus\":\"not_needed\",\"metadata\":null}",
+      "detail": "{\"fileChangeMode\":\"write-file\",\"action\":\"create\",\"description\":\"Add the placeholder Workflow page component for the /workflow route in the workflow feature folder\",\"needsFileContent\":true,\"needsMetadata\":false,\"confident\":true,\"fileStatus\":\"done\",\"metadataStatus\":\"not_needed\",\"metadata\":null}",
       "linked_element_ids": [],
       "finalized": false,
       "blocked_by": [],
       "notes": "",
       "createdAt": "2026-10-07T12:03:14.669Z",
-      "updatedAt": "2026-10-07T12:03:14.669Z"
+      "updatedAt": "2026-10-07T12:57:26.914Z"
     },
     {
       "roadmap_node_id": "rmn_6071e5b8a71139e12d289cbe",
@@ -609,18 +609,18 @@
       "type": "task",
       "depth": 2,
       "locked": false,
-      "status": "in_progress",
+      "status": "done",
       "order": 13,
       "feature_id": null,
       "title": "src/features/team/TeamPage.tsx",
       "summary": "Add the placeholder Team page component for the /team route in the team feature folder",
-      "detail": "{\"action\":\"create\",\"description\":\"Add the placeholder Team page component for the /team route in the team feature folder\",\"needsFileContent\":true,\"needsMetadata\":false,\"confident\":true,\"fileStatus\":\"pending\",\"fileChangeMode\":null,\"metadataStatus\":\"not_needed\",\"metadata\":null}",
+      "detail": "{\"fileChangeMode\":\"write-file\",\"action\":\"create\",\"description\":\"Add the placeholder Team page component for the /team route in the team feature folder\",\"needsFileContent\":true,\"needsMetadata\":false,\"confident\":true,\"fileStatus\":\"done\",\"metadataStatus\":\"not_needed\",\"metadata\":null}",
       "linked_element_ids": [],
       "finalized": false,
       "blocked_by": [],
       "notes": "",
       "createdAt": "2026-10-07T12:03:14.698Z",
-      "updatedAt": "2026-10-07T12:03:14.698Z"
+      "updatedAt": "2026-10-07T12:57:43.887Z"
     },
     {
       "roadmap_node_id": "rmn_21686392739cd57027942f3e",
@@ -629,18 +629,18 @@
       "type": "task",
       "depth": 2,
       "locked": false,
-      "status": "in_progress",
+      "status": "done",
       "order": 14,
       "feature_id": null,
       "title": "src/App.tsx",
       "summary": "Define the routes: layout wrapper, /workflow and /team pages, and default redirect from / to /workflow",
-      "detail": "{\"action\":\"create\",\"description\":\"Define the routes: layout wrapper, /workflow and /team pages, and default redirect from / to /workflow\",\"needsFileContent\":true,\"needsMetadata\":false,\"confident\":true,\"fileStatus\":\"pending\",\"fileChangeMode\":null,\"metadataStatus\":\"not_needed\",\"metadata\":null}",
+      "detail": "{\"fileChangeMode\":\"write-file\",\"action\":\"create\",\"description\":\"Define the routes: layout wrapper, /workflow and /team pages, and default redirect from / to /workflow\",\"needsFileContent\":true,\"needsMetadata\":false,\"confident\":true,\"fileStatus\":\"done\",\"metadataStatus\":\"not_needed\",\"metadata\":null}",
       "linked_element_ids": [],
       "finalized": false,
       "blocked_by": [],
       "notes": "",
       "createdAt": "2026-10-07T12:03:14.724Z",
-      "updatedAt": "2026-10-07T12:03:14.724Z"
+      "updatedAt": "2026-10-07T12:58:06.237Z"
     },
     {
       "roadmap_node_id": "rmn_d215d79c0536f0e5896cfab2",
@@ -649,18 +649,18 @@
       "type": "task",
       "depth": 2,
       "locked": false,
-      "status": "in_progress",
+      "status": "done",
       "order": 15,
       "feature_id": null,
       "title": "src/main.tsx",
       "summary": "Add the React entry point that mounts the app inside BrowserRouter and imports global styles",
-      "detail": "{\"action\":\"create\",\"description\":\"Add the React entry point that mounts the app inside BrowserRouter and imports global styles\",\"needsFileContent\":true,\"needsMetadata\":false,\"confident\":true,\"fileStatus\":\"pending\",\"fileChangeMode\":null,\"metadataStatus\":\"not_needed\",\"metadata\":null}",
+      "detail": "{\"fileChangeMode\":\"write-file\",\"action\":\"create\",\"description\":\"Add the React entry point that mounts the app inside BrowserRouter and imports global styles\",\"needsFileContent\":true,\"needsMetadata\":false,\"confident\":true,\"fileStatus\":\"done\",\"metadataStatus\":\"not_needed\",\"metadata\":null}",
       "linked_element_ids": [],
       "finalized": false,
       "blocked_by": [],
       "notes": "",
       "createdAt": "2026-10-07T12:03:14.749Z",
-      "updatedAt": "2026-10-07T12:03:14.749Z"
+      "updatedAt": "2026-10-07T12:58:19.292Z"
     }
   ]
 }
