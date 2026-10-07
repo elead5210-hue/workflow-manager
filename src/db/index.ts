@@ -126,6 +126,21 @@ export function saveWorkflow(workflow: Workflow): Promise<void> {
   })
 }
 
+/**
+ * Clears the workflows store and re-saves the seed workflow in a single
+ * transaction, so the reset either fully applies or leaves the stored
+ * workflow untouched. Team members and the 'seeded' flag are not changed.
+ */
+export function resetWorkflow(): Promise<Workflow> {
+  return run('reset workflow to seed data', async (db) => {
+    const tx = db.transaction(WORKFLOWS_STORE, 'readwrite')
+    await tx.store.clear()
+    await tx.store.put(seedWorkflow)
+    await tx.done
+    return seedWorkflow
+  })
+}
+
 /** Returns true once the initial seed data has been written. */
 export function isSeeded(): Promise<boolean> {
   return run('read seeded flag', async (db) => {

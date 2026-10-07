@@ -2,7 +2,9 @@ import { MarkerType } from '@xyflow/react'
 import type { Edge, Node } from '@xyflow/react'
 import type {
   Workflow,
+  WorkflowEdge,
   WorkflowEdgeKind,
+  WorkflowNode,
   WorkflowNodeStatus,
   WorkflowNodeType,
 } from '../../types'
@@ -160,5 +162,101 @@ export function mapWorkflowToFlow(workflow: Workflow): FlowGraph {
   return {
     nodes: [...buildSwimlanes(workflow), ...workflowNodes],
     edges,
+  }
+}
+
+/** True for React Flow nodes that represent a workflow node (not a swimlane background). */
+export function isWorkflowCardNode(
+  node: WorkflowFlowNode,
+): node is Node<WorkflowFlowNodeData, WorkflowNodeType> {
+  return node.type !== SWIMLANE_NODE_TYPE
+}
+
+/**
+ * Returns an id starting with the given prefix that is not in `existingIds`.
+ * Used when the user adds a node or an edge so new ids never collide with stored ones.
+ */
+export function createUniqueId(
+  prefix: string,
+  existingIds: Iterable<string>,
+): string {
+  const taken = new Set(existingIds)
+  let counter = taken.size + 1
+  let candidate = `${prefix}-${counter}`
+  while (taken.has(candidate)) {
+    counter += 1
+    candidate = `${prefix}-${counter}`
+  }
+  return candidate
+}
+
+/**
+ * Maps edited React Flow nodes and edges back to a stored Workflow so the
+ * changes can be persisted. Positions, labels, descriptions, owners, statuses,
+ * groups and node types are read from the canvas, so added nodes and edges are
+ * included and deleted ones are dropped. Swimlane background nodes are skipped
+ * because they are derived from the node groups. Edges that point to a missing
+ * node are dropped. The workflow id, name and version come from `base`.
+ */
+export function mapFlowToWorkflow(
+  base: Workflow,
+  nodes: WorkflowFlowNode[],
+  edges: WorkflowFlowEdge[],
+): Workflow {
+  const workflowNodes: WorkflowNode[] = nodes.filter(isWorkflowCardNode).map((node) => {
+    const { data } = node
+    const stored: WorkflowNode = {
+      id: node.id,
+      label: data.label,
+      type: data.nodeType,
+      description: data.description,
+      group: data.group,
+      position: { x: node.position.x, y: node.position.y },
+    }
+    if (data.ownerId) stored.ownerId = data.ownerId
+    if (data.status === 'needs-definition') stored.status = data.status
+    return stored
+  })
+
+  const nodeIds = new Set(workflowNodes.map((node) => node.id))
+
+  const workflowEdges: WorkflowEdge[] = edges
+    .filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target))
+    .map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      label: typeof edge.label === 'string' ? edge.label : '',
+      kind: edge.data?.kind ?? 'data',
+    }))
+
+  return {
+    id: base.id,
+    name: base.name,
+    version: base.version,
+    nodes: workflowNodes,
+    edges: workflowEdges,
+  }
+}
+
+/** Builds a React Flow edge for a stored edge kind and label, matching the edges made by mapWorkflowToFlow. */
+export function createFlowEdge(
+  id: string,
+  source: string,
+  target: string,
+  kind: WorkflowEdgeKind,
+  label = '',
+): WorkflowFlowEdge {
+  return {
+    id,
+    source,
+    target,
+    type: 'smoothstep',
+    label: label || undefined,
+    animated: ANIMATED_KINDS.has(kind),
+    className: `flow-edge flow-edge--${kind}`,
+    markerEnd: { type: MarkerType.ArrowClosed },
+    data: { kind },
+    zIndex: 2,
   }
 }
