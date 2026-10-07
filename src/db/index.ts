@@ -3,6 +3,7 @@ import { openDB } from 'idb'
 import type { DBSchema, IDBPDatabase } from 'idb'
 import type { TeamMember, Workflow } from '../types'
 import { seedMembers } from './seedMembers'
+import { seedWorkflow } from './seedWorkflow'
 
 export const DB_NAME = 'workflow-manager'
 /** Bump this and add an `oldVersion < N` block in `upgrade` for every schema change. */
@@ -143,8 +144,8 @@ export function markSeeded(): Promise<void> {
 let seedPromise: Promise<boolean> | null = null
 
 /**
- * Writes the seed members and sets the 'seeded' flag in a single transaction,
- * only when the flag is absent. Safe to call repeatedly: the flag check and the
+ * Writes the seed members and the seed workflow and sets the 'seeded' flag in a
+ * single transaction, only when the flag is absent. Safe to call repeatedly: the flag check and the
  * writes share one readwrite transaction, so a refresh, a second tab or a
  * StrictMode double-mount never duplicates records.
  * Resolves to true if seed data was written by this call, false otherwise.
@@ -152,7 +153,10 @@ let seedPromise: Promise<boolean> | null = null
 export function seedIfNeeded(): Promise<boolean> {
   if (!seedPromise) {
     seedPromise = run('seed initial data', async (db) => {
-      const tx = db.transaction([MEMBERS_STORE, META_STORE], 'readwrite')
+      const tx = db.transaction(
+        [MEMBERS_STORE, WORKFLOWS_STORE, META_STORE],
+        'readwrite',
+      )
       const flag = await tx.objectStore(META_STORE).get(SEEDED_KEY)
       if (flag === true) {
         await tx.done
@@ -160,6 +164,7 @@ export function seedIfNeeded(): Promise<boolean> {
       }
       const membersStore = tx.objectStore(MEMBERS_STORE)
       await Promise.all(seedMembers.map((member) => membersStore.put(member)))
+      await tx.objectStore(WORKFLOWS_STORE).put(seedWorkflow)
       await tx.objectStore(META_STORE).put(true, SEEDED_KEY)
       await tx.done
       return true

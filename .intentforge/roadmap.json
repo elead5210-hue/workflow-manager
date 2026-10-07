@@ -569,18 +569,18 @@
       "type": "task",
       "depth": 2,
       "locked": false,
-      "status": "in_progress",
+      "status": "done",
       "order": 2,
       "feature_id": null,
       "title": "src/db/index.ts",
       "summary": "Extend seedIfNeeded to also save the seed workflow in the same transaction that writes the members and sets the 'seeded' flag, so the first-load seeding stays atomic and idempotent",
-      "detail": "{\"action\":\"modify\",\"description\":\"Extend seedIfNeeded to also save the seed workflow in the same transaction that writes the members and sets the 'seeded' flag, so the first-load seeding stays atomic and idempotent\",\"needsFileContent\":true,\"needsMetadata\":false,\"confident\":true,\"fileStatus\":\"pending\",\"fileChangeMode\":null,\"metadataStatus\":\"not_needed\",\"metadata\":null}",
+      "detail": "{\"fileChangeMode\":\"patch\",\"action\":\"modify\",\"description\":\"Extend seedIfNeeded to also save the seed workflow in the same transaction that writes the members and sets the 'seeded' flag, so the first-load seeding stays atomic and idempotent\",\"needsFileContent\":true,\"needsMetadata\":false,\"confident\":true,\"fileStatus\":\"done\",\"metadataStatus\":\"not_needed\",\"metadata\":null}",
       "linked_element_ids": [],
       "finalized": false,
       "blocked_by": [],
       "notes": "",
       "createdAt": "2026-10-07T13:02:13.145Z",
-      "updatedAt": "2026-10-07T13:02:13.145Z"
+      "updatedAt": "2026-10-07T13:11:25.688Z"
     },
     {
       "roadmap_node_id": "rmn_ad4fa01bba93090c950965a2",
