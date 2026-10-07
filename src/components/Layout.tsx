@@ -9,6 +9,9 @@ const navLinks = [
 export default function Layout() {
   return (
     <div className="layout">
+      <a className="layout__skip-link" href="#main-content">
+        Skip to main content
+      </a>
       <header className="layout__header">
         <div className="layout__header-inner">
           <span className="layout__brand">Workflow Manager</span>
@@ -29,7 +32,7 @@ export default function Layout() {
           </nav>
         </div>
       </header>
-      <main className="layout__main">
+      <main className="layout__main" id="main-content" tabIndex={-1}>
         <Outlet />
       </main>
     </div>

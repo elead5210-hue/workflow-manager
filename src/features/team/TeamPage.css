@@ -1,0 +1,505 @@
+/* Team page: filter and sort toolbar, member card grid, empty state and links to workflow nodes. */
+
+.team-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.team-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.team-page__header h1 {
+  margin: 0;
+}
+
+.team-page__hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* Filter and sort toolbar */
+
+.team-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.team-toolbar__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.team-toolbar__field--search {
+  flex: 1 1 16rem;
+  max-width: 28rem;
+}
+
+.team-toolbar__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.team-toolbar__input,
+.team-toolbar__select {
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.team-toolbar__input:focus-visible,
+.team-toolbar__select:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.team-toolbar__count {
+  margin: 0;
+  margin-left: auto;
+  padding-bottom: var(--space-2);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+/* Member card grid */
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.team-card {
+  /* Accent colour of the member, overridden by the team-card--member-N classes below. */
+  --member-accent: var(--color-member-1);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-top: 4px solid var(--member-accent);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 2px var(--color-shadow);
+  scroll-margin-top: calc(var(--nav-height) + var(--space-3));
+}
+
+/* One accent colour per member, taken from the shared member tokens. */
+.team-card--member-1 {
+  --member-accent: var(--color-member-1);
+}
+
+.team-card--member-2 {
+  --member-accent: var(--color-member-2);
+}
+
+.team-card--member-3 {
+  --member-accent: var(--color-member-3);
+}
+
+.team-card--member-4 {
+  --member-accent: var(--color-member-4);
+}
+
+.team-card--member-5 {
+  --member-accent: var(--color-member-5);
+}
+
+.team-card--member-6 {
+  --member-accent: var(--color-member-6);
+}
+
+/* A card is highlighted when the URL hash names its member, for example from a node's owner link. */
+.team-card:target,
+.team-card--highlighted {
+  border-color: var(--member-accent);
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.team-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.team-card__name {
+  margin: 0;
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+}
+
+.team-card__role {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--member-accent);
+}
+
+.team-card__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.team-card__section-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.team-card__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-4);
+  font-size: 0.9rem;
+}
+
+.team-card__muted {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+/* Owned apps */
+
+.team-card__apps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.team-card__app {
+  padding: 0 var(--space-3);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--color-text);
+  background-color: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  overflow-wrap: anywhere;
+}
+
+/* Links from a member to the workflow nodes they own */
+
+.team-card__nodes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.team-card__node-link {
+  display: inline-block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+.team-card__node-link:hover {
+  color: var(--color-primary-hover);
+}
+
+.team-card__node-link:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Add, edit and delete controls */
+
+.team-button {
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  font-weight: 500;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.team-button:hover:not(:disabled) {
+  background-color: var(--color-surface-alt);
+}
+
+.team-button:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.team-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.team-button--primary {
+  color: var(--color-primary-contrast);
+  background-color: var(--color-primary);
+  border-color: transparent;
+}
+
+.team-button--primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.team-button--danger {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.team-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Message shown above the cards after a save or delete succeeds or fails */
+
+.team-page__notice {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.9rem;
+  color: var(--color-text);
+  background-color: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.team-page__notice--error {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+/* Delete confirmation dialog */
+
+.team-delete__text {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.team-delete__warning {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.9rem;
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+}
+
+.team-delete__error {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-danger);
+}
+
+/* Add and edit member form (inside the shared modal) */
+
+.member-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.member-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.member-form__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.member-form__required {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.member-form__input,
+.member-form__textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.member-form__textarea {
+  resize: vertical;
+}
+
+.member-form__input:focus-visible,
+.member-form__textarea:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.member-form__input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.member-form__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.member-form__error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-danger);
+}
+
+/* The duplicate-name warning does not block saving, so it is a notice rather than an error. */
+.member-form__warning {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.85rem;
+  color: var(--color-text);
+  background-color: var(--color-surface-alt);
+  border: 1px dashed var(--color-danger);
+  border-radius: var(--radius-md);
+}
+
+@media (max-width: 768px) {
+  .team-grid {
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: var(--space-3);
+  }
+
+  .team-toolbar__field {
+    flex: 1 1 10rem;
+  }
+
+  .team-toolbar__field--search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .team-toolbar__count {
+    flex-basis: 100%;
+    margin-left: 0;
+    padding-bottom: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .team-card__actions .team-button {
+    flex: 1 1 auto;
+  }
+}
+
+/* Empty, no match and error states */
+
+.team-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 240px;
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  color: var(--color-text-muted);
+  background-color: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.team-empty--error {
+  border-style: solid;
+  border-color: var(--color-danger);
+}
+
+.team-empty__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.team-empty--error .team-empty__title {
+  color: var(--color-danger);
+}
+
+.team-empty__text {
+  max-width: 48ch;
+  margin: 0;
+}
+
+.team-empty__action {
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-4);
+  font-weight: 500;
+  color: var(--color-primary-contrast);
+  background-color: var(--color-primary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+}
+
+.team-empty__action:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.team-empty__action:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .team-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .team-toolbar__field--search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .team-toolbar__count {
+    flex-basis: 100%;
+    margin-left: 0;
+    padding-bottom: 0;
+  }
+}

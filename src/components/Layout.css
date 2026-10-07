@@ -8,11 +8,32 @@
   color: var(--color-text);
 }
 
+/* Skip link: hidden off screen until a keyboard user focuses it. */
+.layout__skip-link {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 20;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  font-weight: var(--font-weight-medium);
+  transform: translateY(-200%);
+}
+
+.layout__skip-link:focus,
+.layout__skip-link:focus-visible {
+  transform: translateY(0);
+  color: var(--color-primary-contrast);
+  text-decoration: none;
+}
+
 .layout__header {
   position: sticky;
   top: 0;
   z-index: 10;
-  height: var(--nav-height);
+  min-height: var(--nav-height);
   background-color: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   box-shadow: 0 1px 2px var(--color-shadow);
@@ -22,14 +43,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
-  height: 100%;
-  padding: 0 var(--space-4);
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  min-height: var(--nav-height);
+  padding: var(--space-2) var(--space-4);
 }
 
 .layout__brand {
-  font-weight: 700;
-  font-size: 1.1rem;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-md);
   letter-spacing: 0.01em;
   color: var(--color-text);
   white-space: nowrap;
@@ -37,15 +59,19 @@
 
 .layout__nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
 }
 
 .layout__nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
   color: var(--color-text-muted);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   text-decoration: none;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
@@ -70,16 +96,33 @@
   padding: var(--space-5) var(--space-4);
 }
 
+/* The main area receives focus from the skip link, so it needs no outline. */
+.layout__main:focus {
+  outline: none;
+}
+
+@media (max-width: 768px) {
+  .layout__main {
+    padding: var(--space-4);
+  }
+}
+
 @media (max-width: 480px) {
   .layout__header-inner {
-    padding: 0 var(--space-3);
+    padding: var(--space-2) var(--space-3);
   }
 
   .layout__brand {
-    font-size: 1rem;
+    font-size: var(--font-size-base);
+  }
+
+  .layout__nav {
+    flex: 1 1 100%;
   }
 
   .layout__nav-link {
+    flex: 1 1 auto;
+    justify-content: center;
     padding: var(--space-2) var(--space-3);
   }
 

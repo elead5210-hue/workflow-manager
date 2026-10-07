@@ -17,6 +17,27 @@
   --color-focus: #3b5bdb;
   --color-shadow: rgba(16, 24, 40, 0.08);
 
+  /* Colour per workflow node type: an accent for borders and text, and a soft tint for fills. */
+  --color-node-actor: #c2410c;
+  --color-node-actor-bg: #fff4e6;
+  --color-node-system: #3b5bdb;
+  --color-node-system-bg: #edf2ff;
+  --color-node-process: #2b8a3e;
+  --color-node-process-bg: #ebfbee;
+  --color-node-artifact: #9c36b5;
+  --color-node-artifact-bg: #f8f0fc;
+  --color-node-decision: #b45309;
+  --color-node-decision-bg: #fff9db;
+  --color-needs-definition: #c92a2a;
+
+  /* Colour per team member, picked by a stable index so a member keeps the same colour. */
+  --color-member-1: #3b5bdb;
+  --color-member-2: #c2410c;
+  --color-member-3: #2b8a3e;
+  --color-member-4: #9c36b5;
+  --color-member-5: #0b7285;
+  --color-member-6: #a61e4d;
+
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
@@ -32,6 +53,26 @@
   --radius-lg: 12px;
 
   --nav-height: 3.5rem;
+  --space-7: 3rem;
+
+  /* Typography scale */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-md: 1.125rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 1.875rem;
+  --line-height-tight: 1.25;
+  --line-height-base: 1.5;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  /* Focus ring and minimum touch target size */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --touch-target: 2.75rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -48,6 +89,25 @@
     --color-danger: #ff6b6b;
     --color-focus: #91a7ff;
     --color-shadow: rgba(0, 0, 0, 0.4);
+
+    --color-node-actor: #ff922b;
+    --color-node-actor-bg: #2b1d12;
+    --color-node-system: #91a7ff;
+    --color-node-system-bg: #1b2340;
+    --color-node-process: #69db7c;
+    --color-node-process-bg: #16291b;
+    --color-node-artifact: #da77f2;
+    --color-node-artifact-bg: #2a1a33;
+    --color-node-decision: #ffc078;
+    --color-node-decision-bg: #2e2410;
+    --color-needs-definition: #ff8787;
+
+    --color-member-1: #91a7ff;
+    --color-member-2: #ff922b;
+    --color-member-3: #69db7c;
+    --color-member-4: #da77f2;
+    --color-member-5: #66d9e8;
+    --color-member-6: #faa2c1;
   }
 }
 
@@ -64,6 +124,25 @@
   --color-danger: #ff6b6b;
   --color-focus: #91a7ff;
   --color-shadow: rgba(0, 0, 0, 0.4);
+
+  --color-node-actor: #ff922b;
+  --color-node-actor-bg: #2b1d12;
+  --color-node-system: #91a7ff;
+  --color-node-system-bg: #1b2340;
+  --color-node-process: #69db7c;
+  --color-node-process-bg: #16291b;
+  --color-node-artifact: #da77f2;
+  --color-node-artifact-bg: #2a1a33;
+  --color-node-decision: #ffc078;
+  --color-node-decision-bg: #2e2410;
+  --color-needs-definition: #ff8787;
+
+  --color-member-1: #91a7ff;
+  --color-member-2: #ff922b;
+  --color-member-3: #69db7c;
+  --color-member-4: #da77f2;
+  --color-member-5: #66d9e8;
+  --color-member-6: #faa2c1;
 }
 
 *,
@@ -81,8 +160,8 @@ body,
 body {
   margin: 0;
   font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.5;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
   color: var(--color-text);
   background-color: var(--color-bg);
   -webkit-font-smoothing: antialiased;
@@ -126,8 +205,8 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  outline: var(--focus-ring-width) solid var(--color-focus);
+  outline-offset: var(--focus-ring-offset);
 }
 
 code,
@@ -138,4 +217,42 @@ pre {
 img,
 svg {
   max-width: 100%;
+}
+
+h1 {
+  font-size: var(--font-size-xl);
+}
+
+h2 {
+  font-size: var(--font-size-lg);
+}
+
+h3 {
+  font-size: var(--font-size-md);
+}
+
+@media (min-width: 768px) {
+  h1 {
+    font-size: var(--font-size-2xl);
+  }
+}
+
+/* Give touch screens larger targets for buttons and form controls. */
+@media (pointer: coarse) {
+  button,
+  select,
+  input:not([type='checkbox']):not([type='radio']) {
+    min-height: var(--touch-target);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

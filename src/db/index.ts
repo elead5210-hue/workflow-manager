@@ -114,6 +114,37 @@ export function deleteMember(id: string): Promise<void> {
   return run('delete team member', (db) => db.delete(MEMBERS_STORE, id))
 }
 
+/**
+ * Deletes a team member and clears `ownerId` on every workflow node that
+ * referenced them, in a single transaction over the members and workflows
+ * stores. Either both changes apply or neither does, so no stored node is left
+ * pointing at a removed member.
+ * Resolves to the number of workflow nodes that lost their owner.
+ */
+export function deleteMemberAndUnassign(id: string): Promise<number> {
+  return run('delete team member and unassign workflow nodes', async (db) => {
+    const tx = db.transaction([MEMBERS_STORE, WORKFLOWS_STORE], 'readwrite')
+    const workflowsStore = tx.objectStore(WORKFLOWS_STORE)
+    const workflows = await workflowsStore.getAll()
+    let unassigned = 0
+    for (const workflow of workflows) {
+      let changed = false
+      const nodes = workflow.nodes.map((node) => {
+        if (node.ownerId !== id) return node
+        const updated = { ...node }
+        delete updated.ownerId
+        unassigned += 1
+        changed = true
+        return updated
+      })
+      if (changed) await workflowsStore.put({ ...workflow, nodes })
+    }
+    await tx.objectStore(MEMBERS_STORE).delete(id)
+    await tx.done
+    return unassigned
+  })
+}
+
 /** Returns the workflow with the given id, or undefined if it is not stored. */
 export function getWorkflow(id: string): Promise<Workflow | undefined> {
   return run('load workflow', (db) => db.get(WORKFLOWS_STORE, id))
