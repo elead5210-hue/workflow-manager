@@ -436,6 +436,8 @@ export const seedWorkflow: Workflow = {
   id: SEED_WORKFLOW_ID,
   name: 'Company workflow',
   version: 1,
+  // Fixed on purpose: a value taken from the clock would make every seed write differ.
+  updatedAt: '2026-10-08T00:00:00.000Z',
   nodes,
   edges,
 }

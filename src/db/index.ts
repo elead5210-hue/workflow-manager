@@ -1,18 +1,22 @@
 // IndexedDB data layer for the workflow manager.
 import { openDB } from 'idb'
 import type { DBSchema, IDBPDatabase } from 'idb'
-import type { TeamMember, Workflow } from '../types'
+import type { TeamMember, Workflow, WorkflowSnapshot } from '../types'
 import { seedMembers } from './seedMembers'
 import { seedWorkflow } from './seedWorkflow'
 
 export const DB_NAME = 'workflow-manager'
 /** Bump this and add an `oldVersion < N` block in `upgrade` for every schema change. */
-export const DB_VERSION = 1
+export const DB_VERSION = 2
 
 const MEMBERS_STORE = 'members'
 const WORKFLOWS_STORE = 'workflows'
 const META_STORE = 'meta'
+const SNAPSHOTS_STORE = 'snapshots'
 const SEEDED_KEY = 'seeded'
+
+/** Most snapshots kept per workflow. Saving a new one removes the oldest beyond this. */
+export const MAX_SNAPSHOTS = 20
 
 interface WorkflowManagerDB extends DBSchema {
   members: {
@@ -26,6 +30,11 @@ interface WorkflowManagerDB extends DBSchema {
   meta: {
     key: string
     value: unknown
+  }
+  snapshots: {
+    key: string
+    value: WorkflowSnapshot
+    indexes: { 'by-workflow': string }
   }
 }
 
@@ -55,7 +64,12 @@ function getDb(): Promise<Db> {
           db.createObjectStore(WORKFLOWS_STORE, { keyPath: 'id' })
           db.createObjectStore(META_STORE)
         }
-        // if (oldVersion < 2) { ...future migration... }
+        if (oldVersion < 2) {
+          // Snapshot history of the workflow, looked up by the workflow it belongs to.
+          const snapshots = db.createObjectStore(SNAPSHOTS_STORE, { keyPath: 'id' })
+          snapshots.createIndex('by-workflow', 'workflowId')
+        }
+        // if (oldVersion < 3) { ...future migration... }
       },
       blocking() {
         // Another tab wants to upgrade the schema: release our connection.
@@ -169,6 +183,98 @@ export function resetWorkflow(): Promise<Workflow> {
     await tx.store.put(seedWorkflow)
     await tx.done
     return seedWorkflow
+  })
+}
+
+/** Orders snapshots from newest to oldest. */
+function newestFirst(a: WorkflowSnapshot, b: WorkflowSnapshot): number {
+  return (
+    b.createdAt.localeCompare(a.createdAt) ||
+    b.version - a.version ||
+    b.id.localeCompare(a.id)
+  )
+}
+
+/**
+ * Saves a snapshot, then removes the oldest snapshots of the same workflow
+ * beyond MAX_SNAPSHOTS. The save and the trimming share one transaction, so the
+ * history is never left over its cap.
+ */
+export function saveSnapshot(snapshot: WorkflowSnapshot): Promise<void> {
+  return run('save workflow snapshot', async (db) => {
+    const tx = db.transaction(SNAPSHOTS_STORE, 'readwrite')
+    await tx.store.put(snapshot)
+    const sameWorkflow = await tx.store.index('by-workflow').getAll(snapshot.workflowId)
+    sameWorkflow.sort(newestFirst)
+    for (const stale of sameWorkflow.slice(MAX_SNAPSHOTS)) {
+      await tx.store.delete(stale.id)
+    }
+    await tx.done
+  })
+}
+
+/** Returns the snapshots of a workflow, newest first. */
+export function listSnapshots(workflowId: string): Promise<WorkflowSnapshot[]> {
+  return run('load workflow snapshots', async (db) => {
+    const snapshots = await db.getAllFromIndex(SNAPSHOTS_STORE, 'by-workflow', workflowId)
+    return snapshots.sort(newestFirst)
+  })
+}
+
+/** Returns the snapshot with the given id, or undefined if it is not stored. */
+export function getSnapshot(id: string): Promise<WorkflowSnapshot | undefined> {
+  return run('load workflow snapshot', (db) => db.get(SNAPSHOTS_STORE, id))
+}
+
+/** Deletes a snapshot by id. */
+export function deleteSnapshot(id: string): Promise<void> {
+  return run('delete workflow snapshot', (db) => db.delete(SNAPSHOTS_STORE, id))
+}
+
+/**
+ * Replaces all team members and the stored workflow with imported ones in a
+ * single transaction, so an import either fully applies or changes nothing.
+ * When `workflow` is null the stored workflows are kept, but any node owned by a
+ * member that is not in the imported list loses its owner, so no node points at a
+ * missing member. Snapshots are not touched. The caller decides which workflow id
+ * is stored; the app reads the workflow by the seed workflow id.
+ */
+export function replaceMembersAndWorkflow(
+  members: TeamMember[],
+  workflow: Workflow | null,
+): Promise<void> {
+  return run('import members and workflow', async (db) => {
+    const tx = db.transaction([MEMBERS_STORE, WORKFLOWS_STORE, META_STORE], 'readwrite')
+    const membersStore = tx.objectStore(MEMBERS_STORE)
+    const workflowsStore = tx.objectStore(WORKFLOWS_STORE)
+
+    await membersStore.clear()
+    await Promise.all(members.map((member) => membersStore.put(member)))
+
+    if (workflow) {
+      await workflowsStore.clear()
+      await workflowsStore.put(workflow)
+    } else {
+      const memberIds = new Set(members.map((member) => member.id))
+      const stored = await workflowsStore.getAll()
+      for (const existing of stored) {
+        const orphaned = existing.nodes.some(
+          (node) => node.ownerId !== undefined && !memberIds.has(node.ownerId),
+        )
+        if (!orphaned) continue
+        const nodes = existing.nodes.map((node) => {
+          if (node.ownerId === undefined || memberIds.has(node.ownerId)) return node
+          const updated = { ...node }
+          delete updated.ownerId
+          return updated
+        })
+        await workflowsStore.put({ ...existing, nodes })
+      }
+    }
+
+    // The imported data counts as the initial data, so the seed never overwrites it.
+    await tx.objectStore(META_STORE).put(true, SEEDED_KEY)
+    await tx.done
   })
 }
 

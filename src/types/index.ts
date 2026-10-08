@@ -65,6 +65,34 @@ export interface Workflow {
   id: string
   name: string
   version: number
+  /** ISO 8601 timestamp of the last change. Absent on workflows stored before versioning was added. */
+  updatedAt?: string
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
+}
+
+/** A saved copy of a workflow at one point in time, kept so earlier iterations can be compared or restored. */
+export interface WorkflowSnapshot {
+  id: string
+  /** Id of the workflow this snapshot was taken from. */
+  workflowId: string
+  /** The workflow version number when the snapshot was taken. */
+  version: number
+  /** Short note describing this iteration. May be empty. */
+  note: string
+  /** ISO 8601 timestamp of when the snapshot was taken. */
+  createdAt: string
+  /** The full workflow exactly as it was at that time. */
+  workflow: Workflow
+}
+
+/** The contents of a JSON export file holding the workflow and the team members. */
+export interface ExportBundle {
+  /** Version of the export file layout, so future changes can still read old files. */
+  formatVersion: number
+  /** ISO 8601 timestamp of when the file was exported. */
+  exportedAt: string
+  /** The exported workflow, or null when none was stored. */
+  workflow: Workflow | null
+  members: TeamMember[]
 }
