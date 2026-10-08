@@ -61,7 +61,7 @@ let dbPromise: Promise<Db> | null = null
 /** Opens the database once and shares the connection between all callers. */
 function getDb(): Promise<Db> {
   if (!dbPromise) {
-    dbPromise = openDB<WorkflowManagerDB>(DB_NAME, DB_VERSION, {
+    const opening: Promise<Db> = openDB<WorkflowManagerDB>(DB_NAME, DB_VERSION, {
       upgrade(db, oldVersion, _newVersion, transaction) {
         // Migration path: each block upgrades the schema from the previous version.
         if (oldVersion < 1) {
@@ -101,6 +101,8 @@ function getDb(): Promise<Db> {
       dbPromise = null
       throw error
     })
+    dbPromise = opening
+    return opening
   }
   return dbPromise
 }

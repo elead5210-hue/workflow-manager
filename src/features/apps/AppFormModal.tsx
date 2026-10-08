@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 
-import Modal from '../../components/Modal'
+import { Modal } from '../../components/Modal'
 import type { AppRecord } from '../../types'
 
 export interface AppFormModalProps {

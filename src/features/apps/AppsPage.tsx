@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import Modal from '../../components/Modal'
+import { Modal } from '../../components/Modal'
 import { useApps } from '../../data/hooks'
 import type { AppRecord } from '../../types'
 import { AppFormModal } from './AppFormModal'

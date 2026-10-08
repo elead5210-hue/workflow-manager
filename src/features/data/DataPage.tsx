@@ -3,7 +3,7 @@ import type { ChangeEvent } from 'react'
 import { useMembers, useWorkflow } from '../../data/hooks'
 import { createExportFileName } from '../../data/exportImport'
 import { downloadTextFile, readFileAsText } from './fileTransfer'
-import SnapshotHistory from './SnapshotHistory'
+import { SnapshotHistory } from './SnapshotHistory'
 import './DataPage.css'
 
 /** A file that was read and is waiting for the user to confirm the import. */
