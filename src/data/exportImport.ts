@@ -11,6 +11,7 @@ import type {
   Workflow,
   WorkflowEdge,
   WorkflowEdgeKind,
+  WorkflowEdgeSide,
   WorkflowNode,
   WorkflowNodeStatus,
   WorkflowNodeType,
@@ -30,6 +31,7 @@ const NODE_TYPES: readonly WorkflowNodeType[] = [
   'decision',
 ]
 const EDGE_KINDS: readonly WorkflowEdgeKind[] = ['data', 'handoff', 'trigger']
+const EDGE_SIDES: readonly WorkflowEdgeSide[] = ['top', 'bottom', 'left', 'right']
 const NODE_STATUSES: readonly WorkflowNodeStatus[] = ['defined', 'needs-definition']
 
 /** The result of reading an export file: the checked bundle, or every problem found. */
@@ -345,6 +347,11 @@ function readEdge(
   const target = readString(value, 'target', path, problems, { allowEmpty: false })
   const label = readString(value, 'label', path, problems, { optional: true }) ?? ''
   const kind = readChoice(value, 'kind', path, problems, EDGE_KINDS, false)
+  const sourceSide = readChoice(value, 'sourceSide', path, problems, EDGE_SIDES, true)
+  const targetSide = readChoice(value, 'targetSide', path, problems, EDGE_SIDES, true)
+  const sourceOffset = readNumber(value, 'sourceOffset', path, problems)
+  const targetOffset = readNumber(value, 'targetOffset', path, problems)
+  const routeOffset = readNumber(value, 'routeOffset', path, problems)
 
   if (nodeIds !== null) {
     if (source !== undefined && !nodeIds.has(source)) {
@@ -358,7 +365,34 @@ function readEdge(
   if (id === undefined || source === undefined || target === undefined || kind === undefined) {
     return null
   }
-  return { id, source, target, label, kind }
+  return {
+    id,
+    source,
+    target,
+    label,
+    kind,
+    ...(sourceSide !== undefined ? { sourceSide } : {}),
+    ...(targetSide !== undefined ? { targetSide } : {}),
+    ...(sourceOffset !== undefined ? { sourceOffset } : {}),
+    ...(targetOffset !== undefined ? { targetOffset } : {}),
+    ...(routeOffset !== undefined ? { routeOffset } : {}),
+  }
+}
+
+/** An optional number. A missing value (or null) is accepted and read as undefined. */
+function readNumber(
+  record: Record<string, unknown>,
+  key: string,
+  path: string,
+  problems: Problems,
+): number | undefined {
+  const value = record[key]
+  if (value === undefined || value === null) return undefined
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    problems.push(`${at(path, key)} must be a number (found ${found(value)}).`)
+    return undefined
+  }
+  return value
 }
 
 function readPosition(

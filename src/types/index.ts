@@ -48,6 +48,9 @@ export type WorkflowNodeShape = 'terminal' | 'process' | 'decision' | 'artifact'
 /** The line style of a workflow edge: the normal flow, a feedback loop or a failure path. */
 export type WorkflowEdgeStyle = 'flow' | 'feedback' | 'failure'
 
+/** The side of a node that an edge leaves from or arrives at. */
+export type WorkflowEdgeSide = 'top' | 'bottom' | 'left' | 'right'
+
 /** A position on the workflow canvas. */
 export interface Position {
   x: number
@@ -88,6 +91,16 @@ export interface WorkflowEdge {
   kind: WorkflowEdgeKind
   /** Optional line style. When omitted the edge is drawn as a normal flow line. */
   style?: WorkflowEdgeStyle
+  /** Optional side of the source node the edge leaves from. When omitted the side is chosen from the node positions. */
+  sourceSide?: WorkflowEdgeSide
+  /** Optional side of the target node the edge arrives at. When omitted the side is chosen from the node positions. */
+  targetSide?: WorkflowEdgeSide
+  /** Optional offset in pixels of the point where the edge leaves the source side, along that side. */
+  sourceOffset?: number
+  /** Optional offset in pixels of the point where the edge arrives at the target side, along that side. */
+  targetOffset?: number
+  /** Optional offset in pixels of the middle segment of the route, away from the straight path (for example to run along a lane boundary or loop around the diagram). */
+  routeOffset?: number
 }
 
 /** A complete workflow made of nodes and the edges between them. */

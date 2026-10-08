@@ -16,20 +16,22 @@ import type {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useMembers, useWorkflow } from '../../data/hooks'
-import type { TeamMember, Workflow } from '../../types'
+import type { TeamMember, Workflow, WorkflowEdgeSide } from '../../types'
 import {
   NODE_HEIGHT,
   NODE_WIDTH,
   createFlowEdge,
   createUniqueId,
+  defaultEdgeRoute,
   isWorkflowCardNode,
   mapFlowToWorkflow,
   mapWorkflowToFlow,
 } from './flowMapping'
-import type { WorkflowFlowEdge, WorkflowFlowNode } from './flowMapping'
+import type { EdgeRoute, WorkflowFlowEdge, WorkflowFlowNode } from './flowMapping'
 import { NodeDetailsPanel } from './NodeDetailsPanel'
 import type { EdgeChanges, NodeChanges } from './NodeDetailsPanel'
 import { WorkflowLegend } from './WorkflowLegend'
+import { edgeTypes } from './WorkflowEdges'
 import { nodeTypes } from './WorkflowNodes'
 import './WorkflowPage.css'
 
@@ -47,6 +49,30 @@ const FIT_VIEW_OPTIONS = { padding: 0.15 }
 
 function minimapNodeColor(node: { type?: string }): string {
   return MINIMAP_COLORS[node.type ?? ''] ?? '#868e96'
+}
+
+/** Reads a React Flow handle id as an edge side, or undefined when it is not one. */
+function asSide(value: string | null | undefined): WorkflowEdgeSide | undefined {
+  return value === 'top' || value === 'bottom' || value === 'left' || value === 'right'
+    ? value
+    : undefined
+}
+
+/**
+ * The route an edge currently has on the canvas: the sides and offsets kept in its data, with the
+ * handles it is attached to as a fallback for the sides. Used to keep the route when an edge is
+ * edited.
+ */
+function routeOf(edge: WorkflowFlowEdge): EdgeRoute {
+  const route: EdgeRoute = {}
+  const sourceSide = edge.data?.sourceSide ?? asSide(edge.sourceHandle)
+  const targetSide = edge.data?.targetSide ?? asSide(edge.targetHandle)
+  if (sourceSide) route.sourceSide = sourceSide
+  if (targetSide) route.targetSide = targetSide
+  if (edge.data?.sourceOffset !== undefined) route.sourceOffset = edge.data.sourceOffset
+  if (edge.data?.targetOffset !== undefined) route.targetOffset = edge.data.targetOffset
+  if (edge.data?.routeOffset !== undefined) route.routeOffset = edge.data.routeOffset
+  return route
 }
 
 /** Group given to nodes that are added while no node is selected. */
@@ -227,6 +253,23 @@ function WorkflowEditor({
     (connection: Connection) => {
       const { source, target } = connection
       if (!source || !target || source === target) return
+      // The handles the user connected give the sides of the new edge. When they are not
+      // sides, the route follows the positions of the two nodes.
+      const sourceSide = asSide(connection.sourceHandle)
+      const targetSide = asSide(connection.targetHandle)
+      let route: EdgeRoute = {}
+      if (sourceSide && targetSide) {
+        route = { sourceSide, targetSide }
+      } else {
+        const from = nodesRef.current.find((node) => node.id === source)
+        const to = nodesRef.current.find((node) => node.id === target)
+        if (from && to && isWorkflowCardNode(from) && isWorkflowCardNode(to)) {
+          route = defaultEdgeRoute(
+            { group: from.data.group, position: from.position },
+            { group: to.data.group, position: to.position },
+          )
+        }
+      }
       setEdges((current) => {
         if (current.some((edge) => edge.source === source && edge.target === target)) {
           return current
@@ -235,7 +278,10 @@ function WorkflowEditor({
           'edge',
           current.map((edge) => edge.id),
         )
-        return [...current, createFlowEdge(id, source, target, 'data')]
+        return [
+          ...current,
+          createFlowEdge(id, source, target, 'data', '', undefined, route),
+        ]
       })
       markChanged()
     },
@@ -354,6 +400,7 @@ function WorkflowEditor({
                   changes.kind,
                   changes.label,
                   changes.style,
+                  routeOf(edge),
                 ),
                 selected: edge.selected,
               }
@@ -486,6 +533,7 @@ function WorkflowEditor({
             nodes={displayNodes}
             edges={displayEdges}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             onPaneClick={handleClosePanel}
             onNodesChange={handleNodesChange}
             onEdgesChange={handleEdgesChange}

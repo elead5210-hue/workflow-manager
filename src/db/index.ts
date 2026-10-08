@@ -7,7 +7,7 @@ import { seedWorkflow } from './seedWorkflow'
 
 export const DB_NAME = 'workflow-manager'
 /** Bump this and add an `oldVersion < N` block in `upgrade` for every schema change. */
-export const DB_VERSION = 5
+export const DB_VERSION = 6
 
 const MEMBERS_STORE = 'members'
 const WORKFLOWS_STORE = 'workflows'
@@ -94,7 +94,15 @@ function getDb(): Promise<Db> {
           void workflows.clear()
           void workflows.put(seedWorkflow)
         }
-        // if (oldVersion < 6) { ...future migration... }
+        if (oldVersion >= 1 && oldVersion < 6) {
+          // The seed edges now carry their route (source and target sides and offsets) for the
+          // custom orthogonal edges. Replace the stored workflow with the updated seed.
+          // A brand new database is seeded on first load instead.
+          const workflows = transaction.objectStore(WORKFLOWS_STORE)
+          void workflows.clear()
+          void workflows.put(seedWorkflow)
+        }
+        // if (oldVersion < 7) { ...future migration... }
       },
       blocking() {
         // Another tab wants to upgrade the schema: release our connection.

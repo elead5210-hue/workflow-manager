@@ -4,6 +4,7 @@ import type {
   Workflow,
   WorkflowEdge,
   WorkflowEdgeKind,
+  WorkflowEdgeSide,
   WorkflowEdgeStyle,
   WorkflowNode,
   WorkflowNodeShape,
@@ -13,6 +14,9 @@ import type {
 
 /** React Flow node type used for the swimlane background of a group. */
 export const SWIMLANE_NODE_TYPE = 'swimlane'
+
+/** React Flow edge type of the custom orthogonal edge, registered in WorkflowEdges.tsx. */
+export const WORKFLOW_EDGE_TYPE = 'workflow'
 
 /** Rendered size of a workflow node in the example flowchart, used to size the swimlanes. */
 export const NODE_WIDTH = 150
@@ -69,12 +73,22 @@ export type SwimlaneNodeData = {
   tone: 0 | 1
 }
 
+/**
+ * How an edge is routed: the side it leaves and arrives at, and pixel offsets.
+ * sourceOffset and targetOffset slide the end points along their sides, and routeOffset
+ * moves the middle segment away from the straight path.
+ */
+export type EdgeRoute = Pick<
+  WorkflowEdge,
+  'sourceSide' | 'targetSide' | 'sourceOffset' | 'targetOffset' | 'routeOffset'
+>
+
 /** Data carried by an edge on the canvas. */
 export type WorkflowFlowEdgeData = {
   kind: WorkflowEdgeKind
   /** Line style: normal flow, feedback loop or failure path. */
   style?: WorkflowEdgeStyle
-}
+} & EdgeRoute
 
 export type WorkflowFlowNode =
   | Node<WorkflowFlowNodeData, WorkflowNodeType>
@@ -87,11 +101,57 @@ export interface FlowGraph {
   edges: WorkflowFlowEdge[]
 }
 
-/** Edge kinds that are drawn animated: they represent something being triggered or handed over. */
-const ANIMATED_KINDS: ReadonlySet<WorkflowEdgeKind> = new Set<WorkflowEdgeKind>([
-  'trigger',
-  'handoff',
-])
+const EDGE_SIDES: readonly WorkflowEdgeSide[] = ['top', 'bottom', 'left', 'right']
+
+/** Reads a React Flow handle id as an edge side, or undefined when it is not one. */
+function asSide(value: string | null | undefined): WorkflowEdgeSide | undefined {
+  return EDGE_SIDES.find((side) => side === value)
+}
+
+/** How far beneath the nodes a backward same-lane edge loops, in pixels. */
+const BACKWARD_LOOP_OFFSET = 40
+
+/**
+ * Routing defaults for an edge that has no stored route.
+ * - Same lane, forward: leaves on the right and arrives on the left, as a straight line.
+ * - Same lane, backward: leaves and arrives on the bottom and loops beneath the nodes.
+ * - Cross lane: leaves from the bottom (or the top when the target lane is above) and runs
+ *   along the lane boundary.
+ */
+export function defaultEdgeRoute(
+  source: Pick<WorkflowNode, 'group' | 'position'>,
+  target: Pick<WorkflowNode, 'group' | 'position'>,
+): EdgeRoute {
+  if (source.group === target.group) {
+    if (target.position.x > source.position.x) {
+      return { sourceSide: 'right', targetSide: 'left' }
+    }
+    return {
+      sourceSide: 'bottom',
+      targetSide: 'bottom',
+      routeOffset: BACKWARD_LOOP_OFFSET,
+    }
+  }
+  if (target.position.y >= source.position.y) {
+    return { sourceSide: 'bottom', targetSide: 'top', routeOffset: 0 }
+  }
+  return { sourceSide: 'top', targetSide: 'bottom', routeOffset: 0 }
+}
+
+/** The route of a stored edge: its own values where it has them, the defaults for the rest. */
+function resolveEdgeRoute(
+  edge: WorkflowEdge,
+  source: Pick<WorkflowNode, 'group' | 'position'>,
+  target: Pick<WorkflowNode, 'group' | 'position'>,
+): EdgeRoute {
+  const route: EdgeRoute = { ...defaultEdgeRoute(source, target) }
+  if (edge.sourceSide) route.sourceSide = edge.sourceSide
+  if (edge.targetSide) route.targetSide = edge.targetSide
+  if (edge.sourceOffset !== undefined) route.sourceOffset = edge.sourceOffset
+  if (edge.targetOffset !== undefined) route.targetOffset = edge.targetOffset
+  if (edge.routeOffset !== undefined) route.routeOffset = edge.routeOffset
+  return route
+}
 
 /** Class names for an edge: one per kind, plus one for a feedback or failure line style. */
 function edgeClassName(
@@ -194,22 +254,26 @@ export function mapWorkflowToFlow(workflow: Workflow): FlowGraph {
     zIndex: 1,
   }))
 
-  const nodeIds = new Set(workflow.nodes.map((node) => node.id))
+  const nodesById = new Map<string, WorkflowNode>(
+    workflow.nodes.map((node) => [node.id, node] as const),
+  )
 
-  const edges: WorkflowFlowEdge[] = workflow.edges
-    .filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target))
-    .map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      type: 'smoothstep',
-      label: edge.label || undefined,
-      animated: ANIMATED_KINDS.has(edge.kind),
-      className: edgeClassName(edge.kind, edge.style),
-      markerEnd: { type: MarkerType.ArrowClosed },
-      data: { kind: edge.kind, ...(edge.style ? { style: edge.style } : {}) },
-      zIndex: 2,
-    }))
+  const edges: WorkflowFlowEdge[] = workflow.edges.flatMap((edge) => {
+    const source = nodesById.get(edge.source)
+    const target = nodesById.get(edge.target)
+    if (!source || !target) return []
+    return [
+      createFlowEdge(
+        edge.id,
+        edge.source,
+        edge.target,
+        edge.kind,
+        edge.label,
+        edge.style,
+        resolveEdgeRoute(edge, source, target),
+      ),
+    ]
+  })
 
   return {
     nodes: [...buildSwimlanes(workflow), ...workflowNodes],
@@ -278,14 +342,28 @@ export function mapFlowToWorkflow(
 
   const workflowEdges: WorkflowEdge[] = edges
     .filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target))
-    .map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      label: typeof edge.label === 'string' ? edge.label : '',
-      kind: edge.data?.kind ?? 'data',
-      ...(edge.data?.style ? { style: edge.data.style } : {}),
-    }))
+    .map((edge) => {
+      // The route is kept as it is on the canvas. When the data has no side, the side of the
+      // handle the edge is attached to is used, so reconnecting an edge keeps its new side.
+      const sourceSide = edge.data?.sourceSide ?? asSide(edge.sourceHandle)
+      const targetSide = edge.data?.targetSide ?? asSide(edge.targetHandle)
+      const sourceOffset = edge.data?.sourceOffset
+      const targetOffset = edge.data?.targetOffset
+      const routeOffset = edge.data?.routeOffset
+      return {
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        label: typeof edge.label === 'string' ? edge.label : '',
+        kind: edge.data?.kind ?? 'data',
+        ...(edge.data?.style ? { style: edge.data.style } : {}),
+        ...(sourceSide ? { sourceSide } : {}),
+        ...(targetSide ? { targetSide } : {}),
+        ...(sourceOffset !== undefined ? { sourceOffset } : {}),
+        ...(targetOffset !== undefined ? { targetOffset } : {}),
+        ...(routeOffset !== undefined ? { routeOffset } : {}),
+      }
+    })
 
   return {
     id: base.id,
@@ -296,7 +374,11 @@ export function mapFlowToWorkflow(
   }
 }
 
-/** Builds a React Flow edge for a stored edge kind and label, matching the edges made by mapWorkflowToFlow. */
+/**
+ * Builds a React Flow edge for a stored edge kind, label and route, matching the edges made by
+ * mapWorkflowToFlow. The sides of the route select the handles the edge attaches to, and the
+ * whole route is kept in the edge data for the custom edge component and for saving.
+ */
 export function createFlowEdge(
   id: string,
   source: string,
@@ -304,17 +386,19 @@ export function createFlowEdge(
   kind: WorkflowEdgeKind,
   label = '',
   style?: WorkflowEdgeStyle,
+  route: EdgeRoute = {},
 ): WorkflowFlowEdge {
   return {
     id,
     source,
     target,
-    type: 'smoothstep',
+    type: WORKFLOW_EDGE_TYPE,
+    ...(route.sourceSide ? { sourceHandle: route.sourceSide } : {}),
+    ...(route.targetSide ? { targetHandle: route.targetSide } : {}),
     label: label || undefined,
-    animated: ANIMATED_KINDS.has(kind),
     className: edgeClassName(kind, style),
     markerEnd: { type: MarkerType.ArrowClosed },
-    data: { kind, ...(style ? { style } : {}) },
+    data: { kind, ...(style ? { style } : {}), ...route },
     zIndex: 2,
   }
 }

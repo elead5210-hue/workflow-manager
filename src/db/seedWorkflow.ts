@@ -55,12 +55,30 @@ function node(
   }
 }
 
+/**
+ * How an edge is routed: the side it leaves and arrives at, and pixel offsets.
+ * sourceOffset and targetOffset slide the end point along its side. routeOffset moves the
+ * middle segment away from the straight path: for a bottom-to-top edge it shifts the
+ * horizontal run up or down from the lane boundary, for a left-to-left edge a negative
+ * value runs the line that far into the left gutter, for a bottom-to-bottom edge a positive
+ * value loops that far beneath the nodes, and for a top-to-top edge a negative value loops
+ * that far above the nodes.
+ */
+type EdgeRoute = Pick<
+  WorkflowEdge,
+  'sourceSide' | 'targetSide' | 'sourceOffset' | 'targetOffset' | 'routeOffset'
+>
+
+/** Same-lane forward edge: leaves on the right and arrives on the left, as a straight line. */
+const FORWARD: EdgeRoute = { sourceSide: 'right', targetSide: 'left' }
+
 function edge(
   source: string,
   target: string,
   label: string,
   kind: WorkflowEdgeKind,
   style?: WorkflowEdgeStyle,
+  route: EdgeRoute = {},
 ): WorkflowEdge {
   return {
     id: `edge-${source}--${target}`,
@@ -69,6 +87,7 @@ function edge(
     label,
     kind,
     ...(style ? { style } : {}),
+    ...route,
   }
 }
 
@@ -406,58 +425,120 @@ const nodes: WorkflowNode[] = [
 
 const edges: WorkflowEdge[] = [
   // Design branch
-  edge('start', 'ds-shell', 'request', 'handoff'),
-  edge('ds-shell', 'ds-handoff', 'changes', 'handoff'),
-  edge('ds-handoff', 'ds-roadmaps', 'converted', 'trigger'),
-  edge('ds-roadmaps', 'if-roadmap', 'roadmaps', 'handoff'),
+  edge('start', 'ds-shell', 'request', 'handoff', undefined, FORWARD),
+  edge('ds-shell', 'ds-handoff', 'changes', 'handoff', undefined, FORWARD),
+  edge('ds-handoff', 'ds-roadmaps', 'converted', 'trigger', undefined, FORWARD),
+  // Cross-lane: leaves from the bottom and runs along the Design / IntentForge lane boundary.
+  edge('ds-roadmaps', 'if-roadmap', 'roadmaps', 'handoff', undefined, {
+    sourceSide: 'bottom',
+    targetSide: 'top',
+    routeOffset: 0,
+  }),
 
-  // START feeds the other lanes
-  edge('start', 'pe-admin', '', 'data'),
-  edge('start', 'fi-capture', '', 'data'),
-  edge('start', 'mk-brief', '', 'data'),
+  // START feeds the other lanes through one bus that runs down the left gutter.
+  edge('start', 'pe-admin', '', 'data', undefined, {
+    sourceSide: 'left',
+    targetSide: 'left',
+    routeOffset: -50,
+  }),
+  edge('start', 'fi-capture', '', 'data', undefined, {
+    sourceSide: 'left',
+    targetSide: 'left',
+    routeOffset: -50,
+  }),
+  edge('start', 'mk-brief', '', 'data', undefined, {
+    sourceSide: 'left',
+    targetSide: 'left',
+    routeOffset: -50,
+  }),
 
   // IntentForge core chain
-  edge('if-roadmap', 'if-ai', 'prompt', 'handoff'),
-  edge('if-ai', 'if-save', 'applied', 'data'),
-  edge('if-save', 'if-github', 'push', 'trigger'),
-  edge('if-github', 'if-test', 'pull', 'handoff'),
-  edge('if-test', 'if-breaks', 'result', 'data'),
-  edge('if-breaks', 'if-done', 'no: ship', 'trigger'),
-  edge('if-breaks', 'if-roadmap', 'yes: new roadmap', 'trigger', 'feedback'),
+  edge('if-roadmap', 'if-ai', 'prompt', 'handoff', undefined, FORWARD),
+  edge('if-ai', 'if-save', 'applied', 'data', undefined, FORWARD),
+  edge('if-save', 'if-github', 'push', 'trigger', undefined, FORWARD),
+  edge('if-github', 'if-test', 'pull', 'handoff', undefined, FORWARD),
+  edge('if-test', 'if-breaks', 'result', 'data', undefined, FORWARD),
+  edge('if-breaks', 'if-done', 'no: ship', 'trigger', undefined, FORWARD),
+  // Backward same-lane feedback: loops beneath the nodes.
+  edge('if-breaks', 'if-roadmap', 'yes: new roadmap', 'trigger', 'feedback', {
+    sourceSide: 'bottom',
+    targetSide: 'bottom',
+    routeOffset: 40,
+  }),
 
   // PenEd branch
-  edge('pe-admin', 'pe-outcomes', 'lessons', 'data'),
-  edge('pe-outcomes', 'pe-creator', 'objectives', 'handoff'),
-  edge('pe-creator', 'pe-content-roadmap', 'creates', 'trigger'),
-  edge('pe-content-roadmap', 'pe-ai-shape', 'prompt + schemas', 'handoff'),
-  edge('pe-ai-shape', 'pe-lms', 'generates', 'data'),
-  edge('pe-content-roadmap', 'pt-suggest', 'no tool fits', 'data', 'feedback'),
+  edge('pe-admin', 'pe-outcomes', 'lessons', 'data', undefined, FORWARD),
+  edge('pe-outcomes', 'pe-creator', 'objectives', 'handoff', undefined, FORWARD),
+  edge('pe-creator', 'pe-content-roadmap', 'creates', 'trigger', undefined, FORWARD),
+  edge('pe-content-roadmap', 'pe-ai-shape', 'prompt + schemas', 'handoff', undefined, FORWARD),
+  edge('pe-ai-shape', 'pe-lms', 'generates', 'data', undefined, FORWARD),
+  // Cross-lane feedback: leaves from the bottom and runs along the PenEd / PenEdTools boundary.
+  edge('pe-content-roadmap', 'pt-suggest', 'no tool fits', 'data', 'feedback', {
+    sourceSide: 'bottom',
+    targetSide: 'top',
+    sourceOffset: -20,
+    routeOffset: 0,
+  }),
 
   // Tool pipeline
-  edge('pt-suggest', 'pt-describe', 'suggested', 'handoff'),
-  edge('pt-describe', 'pt-roadmap', 'roadmap', 'trigger'),
-  edge('pt-roadmap', 'pt-files', 'run', 'trigger'),
-  edge('pt-files', 'pt-added', 'add', 'data'),
-  edge('pt-added', 'pt-prompt', 'schema', 'trigger'),
-  edge('pt-prompt', 'pe-content-roadmap', 'updated schemas', 'data', 'feedback'),
-  edge('pe-lms', 'pt-frame', 'display', 'data'),
+  edge('pt-suggest', 'pt-describe', 'suggested', 'handoff', undefined, FORWARD),
+  edge('pt-describe', 'pt-roadmap', 'roadmap', 'trigger', undefined, FORWARD),
+  edge('pt-roadmap', 'pt-files', 'run', 'trigger', undefined, FORWARD),
+  edge('pt-files', 'pt-added', 'add', 'data', undefined, FORWARD),
+  edge('pt-added', 'pt-prompt', 'schema', 'trigger', undefined, FORWARD),
+  edge('pt-prompt', 'pe-content-roadmap', 'updated schemas', 'data', 'feedback', {
+    sourceSide: 'top',
+    targetSide: 'bottom',
+    targetOffset: 20,
+    routeOffset: 0,
+  }),
+  edge('pe-lms', 'pt-frame', 'display', 'data', undefined, {
+    sourceSide: 'bottom',
+    targetSide: 'top',
+    routeOffset: 0,
+  }),
 
   // Finance branch
-  edge('fi-capture', 'fi-excel', 'export', 'data'),
-  edge('fi-excel', 'fi-attach', 'attach', 'handoff'),
-  edge('fi-attach', 'fi-services', 'future', 'data'),
+  edge('fi-capture', 'fi-excel', 'export', 'data', undefined, FORWARD),
+  edge('fi-excel', 'fi-attach', 'attach', 'handoff', undefined, FORWARD),
+  edge('fi-attach', 'fi-services', 'future', 'data', undefined, FORWARD),
 
   // Marketing branch
-  edge('mk-brief', 'mk-paste', 'paste', 'handoff'),
-  edge('mk-paste', 'mk-roadmap', 'kick off', 'trigger'),
-  edge('mk-roadmap', 'mk-milestones', 'generates', 'data'),
+  edge('mk-brief', 'mk-paste', 'paste', 'handoff', undefined, FORWARD),
+  edge('mk-paste', 'mk-roadmap', 'kick off', 'trigger', undefined, FORWARD),
+  edge('mk-roadmap', 'mk-milestones', 'generates', 'data', undefined, FORWARD),
 
-  // Everything shipped is reviewed, and the review closes the loop
-  edge('if-done', 'review', '', 'data'),
-  edge('pt-frame', 'review', '', 'data'),
-  edge('fi-services', 'review', '', 'data'),
-  edge('mk-milestones', 'review', '', 'data'),
-  edge('review', 'start', 'next request', 'trigger', 'feedback'),
+  // Everything shipped is reviewed, and the review closes the loop.
+  // The edges into the review step are spread along its top and bottom sides so they do not overlap.
+  edge('if-done', 'review', '', 'data', undefined, {
+    sourceSide: 'bottom',
+    targetSide: 'top',
+    routeOffset: 0,
+  }),
+  edge('pt-frame', 'review', '', 'data', undefined, {
+    sourceSide: 'top',
+    targetSide: 'bottom',
+    targetOffset: -30,
+    routeOffset: 0,
+  }),
+  edge('fi-services', 'review', '', 'data', undefined, {
+    sourceSide: 'top',
+    targetSide: 'bottom',
+    targetOffset: 0,
+    routeOffset: 0,
+  }),
+  edge('mk-milestones', 'review', '', 'data', undefined, {
+    sourceSide: 'top',
+    targetSide: 'bottom',
+    targetOffset: 30,
+    routeOffset: 0,
+  }),
+  // The final loop runs around the top of the diagram, back to START.
+  edge('review', 'start', 'next request', 'trigger', 'feedback', {
+    sourceSide: 'top',
+    targetSide: 'top',
+    routeOffset: -70,
+  }),
 ]
 
 export const seedWorkflow: Workflow = {
