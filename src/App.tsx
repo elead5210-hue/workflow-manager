@@ -4,6 +4,7 @@ import { DataProvider } from './data/DataProvider'
 import WorkflowPage from './features/workflow/WorkflowPage'
 import TeamPage from './features/team/TeamPage'
 import AppsPage from './features/apps/AppsPage'
+import DataPage from './features/data/DataPage'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
           <Route path="/workflow" element={<WorkflowPage />} />
           <Route path="/team" element={<TeamPage />} />
           <Route path="/apps" element={<AppsPage />} />
+          <Route path="/data" element={<DataPage />} />
           <Route path="*" element={<Navigate to="/workflow" replace />} />
         </Route>
       </Routes>
