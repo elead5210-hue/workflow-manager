@@ -35,6 +35,14 @@
   --color-feedback: #9c36b5;
   --color-failure: #c92a2a;
 
+  /* Flowchart kind colours: start/end, process and system, artifact, decision, feedback and needs-definition/failure. */
+  --color-term: #2b8a3e;
+  --color-proc: #3b5bdb;
+  --color-data: #9c36b5;
+  --color-dec: #b45309;
+  --color-fb: #9c36b5;
+  --color-bad: #c92a2a;
+
   /* Colour per team member, picked by a stable index so a member keeps the same colour. */
   --color-member-1: #3b5bdb;
   --color-member-2: #c2410c;
@@ -111,6 +119,13 @@
     --color-feedback: #da77f2;
     --color-failure: #ff8787;
 
+    --color-term: #69db7c;
+    --color-proc: #91a7ff;
+    --color-data: #da77f2;
+    --color-dec: #ffc078;
+    --color-fb: #da77f2;
+    --color-bad: #ff8787;
+
     --color-member-1: #91a7ff;
     --color-member-2: #ff922b;
     --color-member-3: #69db7c;
@@ -149,6 +164,13 @@
   --color-node-terminal: #9aa4b5;
   --color-feedback: #da77f2;
   --color-failure: #ff8787;
+
+  --color-term: #69db7c;
+  --color-proc: #91a7ff;
+  --color-data: #da77f2;
+  --color-dec: #ffc078;
+  --color-fb: #da77f2;
+  --color-bad: #ff8787;
 
   --color-member-1: #91a7ff;
   --color-member-2: #ff922b;

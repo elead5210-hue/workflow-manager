@@ -143,106 +143,113 @@
   color: var(--color-text-muted);
 }
 
-/* Workflow nodes */
+/* Workflow nodes: the flowchart symbols of the example workflow.
+   The card itself is transparent. The drawn symbol is the .workflow-node__shape child,
+   so the label, owner, badge and handles sit on top of it. */
 
 .workflow-node {
-  --node-accent: var(--color-primary);
+  --node-kind: var(--color-proc);
+  --node-outline: 1.6px;
 
   position: relative;
   width: 200px;
   min-height: 80px;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2) 1.1rem;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: var(--space-1);
-  background-color: var(--color-surface);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-left: 5px solid var(--node-accent);
-  border-radius: var(--radius-md);
-  box-shadow: 0 1px 3px var(--color-shadow);
-  font-size: 0.85rem;
-  line-height: 1.3;
-}
-
-.workflow-node--actor {
-  --node-accent: var(--color-node-actor);
-  background-color: var(--color-node-actor-bg);
-  border-radius: 40px var(--radius-md) var(--radius-md) 40px;
-}
-
-.workflow-node--system {
-  --node-accent: var(--color-node-system);
-  background-color: var(--color-node-system-bg);
-}
-
-.workflow-node--process {
-  --node-accent: var(--color-node-process);
-  background-color: var(--color-node-process-bg);
-}
-
-.workflow-node--artifact {
-  --node-accent: var(--color-node-artifact);
-  border-style: dashed;
-  border-left-style: solid;
-  background-color: var(--color-node-artifact-bg);
-}
-
-.workflow-node--decision {
-  --node-accent: var(--color-node-decision);
-  background-color: var(--color-node-decision-bg);
-  border-radius: var(--radius-sm);
-  border-width: 2px;
-  border-left-width: 5px;
-}
-
-.workflow-node--selected {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
-}
-
-/* Node shapes of the example workflow: start/end, process, decision and artifact. */
-
-.workflow-node--shape-terminal {
-  --node-accent: var(--color-node-terminal, var(--color-text-muted));
   align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--color-text);
+  background: transparent;
+  font-family: var(--font-mono, ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace);
+  font-size: 11px;
+  line-height: 1.3;
   text-align: center;
-  border-width: 2px;
-  border-color: var(--node-accent);
+}
+
+/* The drawn symbol: a thin kind-coloured outline on the card fill. Process is the default. */
+.workflow-node__shape {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  box-sizing: border-box;
+  background-color: var(--color-surface);
+  border: var(--node-outline) solid var(--node-kind);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* Start / end: green stadium. */
+.workflow-node--shape-terminal {
+  --node-kind: var(--color-term);
+}
+
+.workflow-node--shape-terminal .workflow-node__shape {
   border-radius: 999px;
 }
 
-.workflow-node--shape-process {
-  border-radius: var(--radius-md);
+/* Process: blue rectangle (the default shape, so no extra rules are needed). */
+
+/* System: blue rectangle with a bar down the left side. */
+.workflow-node--system.workflow-node--shape-process .workflow-node__shape {
+  box-shadow: inset 5px 0 0 var(--node-kind);
 }
 
+/* Decision: amber diamond. The outer layer is the outline colour and the inner layer is the
+   card fill, both clipped to the same diamond, so the outline stays about 1.6px wide. */
 .workflow-node--shape-decision {
-  --node-accent: var(--color-node-decision);
-  background-color: var(--color-node-decision-bg);
-  border-width: 2px;
-  border-color: var(--node-accent);
-  border-radius: var(--radius-sm);
+  --node-kind: var(--color-dec);
+  padding: var(--space-2) 2.6rem;
 }
 
+.workflow-node--shape-decision .workflow-node__shape {
+  background-color: var(--node-kind);
+  border: 0;
+  border-radius: 0;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.workflow-node--shape-decision .workflow-node__shape::before {
+  content: '';
+  position: absolute;
+  inset: 2px 4.4px;
+  background-color: var(--color-surface);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+/* Artifact: purple parallelogram. Only the symbol is skewed, so the label stays upright. */
 .workflow-node--shape-artifact {
-  --node-accent: var(--color-node-artifact);
-  background-color: var(--color-node-artifact-bg);
+  --node-kind: var(--color-data);
+  padding: var(--space-2) 1.6rem;
+}
+
+.workflow-node--shape-artifact .workflow-node__shape {
+  inset: 0 10px;
+  transform: skewX(-14deg);
+}
+
+/* Needs definition: red dashed outline (the diamond keeps a solid red outline because a
+   clipped shape cannot be dashed) and a round '?' badge. */
+.workflow-node--needs-definition {
+  --node-kind: var(--color-bad);
+}
+
+.workflow-node--needs-definition .workflow-node__shape {
   border-style: dashed;
-  border-left-style: solid;
-  border-radius: var(--radius-sm);
+}
+
+/* Selected state: a glow that follows the drawn symbol instead of a rectangular outline. */
+.workflow-node--selected {
+  filter: drop-shadow(0 0 2px var(--color-focus)) drop-shadow(0 0 2px var(--color-focus));
 }
 
 .workflow-node__owner {
+  position: relative;
+  z-index: 1;
   font-family: var(--font-mono, ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace);
-  font-size: 0.7rem;
+  font-size: 10px;
   color: var(--color-text-muted);
-}
-
-.workflow-node--needs-definition {
-  border-color: var(--color-needs-definition);
-  border-style: dashed;
-  border-left-style: solid;
 }
 
 /* Dimmed state: while a step is selected, steps and lines not connected to it fade back. */
@@ -267,43 +274,44 @@
   }
 }
 
-.workflow-node__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-2);
-}
-
-.workflow-node__type {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
+/* Round '?' badge on needs-definition nodes. */
 .workflow-node__badge {
-  padding: 0 var(--space-2);
-  font-size: 0.65rem;
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-family: var(--font-mono, ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace);
+  font-size: 11px;
   font-weight: 700;
-  line-height: 1.5;
-  color: var(--color-needs-definition);
-  background-color: transparent;
-  border: 1px solid var(--color-needs-definition);
-  border-radius: 999px;
-  white-space: nowrap;
+  line-height: 1;
+  color: var(--color-bg);
+  background-color: var(--color-bad);
+  border-radius: 50%;
 }
 
+/* Centred 11px monospace label. */
 .workflow-node__label {
-  font-weight: 600;
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-mono, ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
   overflow-wrap: anywhere;
 }
 
+/* Connection handles on all four sides (top, bottom, left and right). */
 .workflow-node__handle {
+  z-index: 3;
   width: 8px;
   height: 8px;
-  background-color: var(--node-accent);
-  border: 1px solid var(--color-surface);
+  background-color: var(--node-kind);
+  border: 1.5px solid var(--color-surface);
 }
 
 /* Edges: colour and dash pattern per kind so meaning is not carried by colour alone */

@@ -8,23 +8,6 @@ import type { SwimlaneNodeData, WorkflowFlowNodeData } from './flowMapping'
 type WorkflowCardProps = NodeProps<Node<WorkflowFlowNodeData, WorkflowNodeType>>
 type SwimlaneProps = NodeProps<Node<SwimlaneNodeData, typeof SWIMLANE_NODE_TYPE>>
 
-/** Short text shown above the label so the node type is not conveyed by colour alone. */
-const TYPE_LABELS: Record<WorkflowNodeType, string> = {
-  actor: 'Actor',
-  system: 'System',
-  process: 'Process',
-  artifact: 'Artifact',
-  decision: 'Decision',
-}
-
-/** Short text shown above the label for each node shape of the example workflow. */
-const SHAPE_LABELS: Record<WorkflowNodeShape, string> = {
-  terminal: 'Start / end',
-  process: 'Process',
-  decision: 'Decision',
-  artifact: 'Artifact',
-}
-
 /**
  * Shape used when a node has none stored: decisions and artifacts keep their own
  * shape and every other node type is drawn as a process step.
@@ -68,32 +51,67 @@ function WorkflowCard({ data, selected }: WorkflowCardProps) {
       data-shape={shape}
       data-status={data.status}
     >
+      <div className="workflow-node__shape" aria-hidden="true" />
       <Handle
+        id="left"
         type="target"
         position={Position.Left}
         className="workflow-node__handle"
       />
-      <div className="workflow-node__header">
-        <span className="workflow-node__type">
-          {data.shape ? SHAPE_LABELS[shape] : TYPE_LABELS[data.nodeType as WorkflowNodeType]}
+      <Handle
+        id="top"
+        type="target"
+        position={Position.Top}
+        className="workflow-node__handle"
+      />
+      <Handle
+        id="right"
+        type="target"
+        position={Position.Right}
+        className="workflow-node__handle"
+      />
+      <Handle
+        id="bottom"
+        type="target"
+        position={Position.Bottom}
+        className="workflow-node__handle"
+      />
+      {needsDefinition ? (
+        <span
+          className="workflow-node__badge"
+          role="img"
+          aria-label="Needs definition"
+          title="Needs definition"
+        >
+          ?
         </span>
-        {needsDefinition ? (
-          <span
-            className="workflow-node__badge"
-            role="status"
-            aria-label="Needs definition"
-          >
-            Needs definition
-          </span>
-        ) : null}
-      </div>
+      ) : null}
       <div className="workflow-node__label">{data.label}</div>
       {data.ownerLabel ? (
         <div className="workflow-node__owner">{data.ownerLabel}</div>
       ) : null}
       <Handle
+        id="right"
         type="source"
         position={Position.Right}
+        className="workflow-node__handle"
+      />
+      <Handle
+        id="top"
+        type="source"
+        position={Position.Top}
+        className="workflow-node__handle"
+      />
+      <Handle
+        id="bottom"
+        type="source"
+        position={Position.Bottom}
+        className="workflow-node__handle"
+      />
+      <Handle
+        id="left"
+        type="source"
+        position={Position.Left}
         className="workflow-node__handle"
       />
     </div>
