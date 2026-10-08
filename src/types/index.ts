@@ -14,6 +14,20 @@ export interface TeamMember {
   createdAt: string
 }
 
+/** A tracked app, saved as a record so the team can see which apps are part of the workflow. */
+export interface AppRecord {
+  id: string
+  name: string
+  /** What the app does. May be empty. */
+  description: string
+  /** Who owns or looks after the app, as free text. May be empty. */
+  owner: string
+  /** Free-form notes about the app. May be empty. */
+  notes: string
+  /** ISO 8601 timestamp. */
+  createdAt: string
+}
+
 /** The kind of thing a workflow node represents. */
 export type WorkflowNodeType =
   | 'actor'

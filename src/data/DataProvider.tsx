@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 
 import * as db from '../db'
 import { SEED_WORKFLOW_ID } from '../db/seedWorkflow'
-import type { TeamMember, Workflow, WorkflowSnapshot } from '../types'
+import type { AppRecord, TeamMember, Workflow, WorkflowSnapshot } from '../types'
 import { DataContext } from './dataContext'
 import type { DataContextValue, DataState, ImportResult } from './dataContext'
 import { buildExportBundle, parseExportBundle, serializeExportBundle } from './exportImport'
@@ -12,6 +12,7 @@ const INITIAL_STATE: DataState = {
   status: 'loading',
   error: null,
   members: [],
+  apps: [],
   workflow: null,
   snapshots: [],
 }
@@ -29,18 +30,20 @@ function describeLoadError(error: unknown): string {
 
 interface LoadedData {
   members: TeamMember[]
+  apps: AppRecord[]
   workflow: Workflow | null
   snapshots: WorkflowSnapshot[]
 }
 
-/** Reads members, the main workflow and its snapshots through the single shared DB connection. */
+/** Reads members, apps, the main workflow and its snapshots through the single shared DB connection. */
 async function readAll(): Promise<LoadedData> {
-  const [members, workflow, snapshots] = await Promise.all([
+  const [members, apps, workflow, snapshots] = await Promise.all([
     db.getAllMembers(),
+    db.getAllApps(),
     db.getWorkflow(SEED_WORKFLOW_ID),
     db.listSnapshots(SEED_WORKFLOW_ID),
   ])
-  return { members, workflow: workflow ?? null, snapshots }
+  return { members, apps, workflow: workflow ?? null, snapshots }
 }
 
 /** A snapshot id that is unique enough for a local, single-user history. */
@@ -95,9 +98,9 @@ export function DataProvider({ children }: DataProviderProps) {
     generationRef.current += 1
     const generation = generationRef.current
     try {
-      const { members, workflow, snapshots } = await readAll()
+      const { members, apps, workflow, snapshots } = await readAll()
       if (generation !== generationRef.current) return
-      setState({ status: 'ready', error: null, members, workflow, snapshots })
+      setState({ status: 'ready', error: null, members, apps, workflow, snapshots })
     } catch (error) {
       if (generation !== generationRef.current) return
       setState((prev) => ({
@@ -160,6 +163,30 @@ export function DataProvider({ children }: DataProviderProps) {
         : prev.workflow,
     }))
     return unassigned
+  }, [])
+
+  const addApp = useCallback(async (app: AppRecord) => {
+    await db.addApp(app)
+    generationRef.current += 1
+    setState((prev) => ({ ...prev, apps: [...prev.apps, app] }))
+  }, [])
+
+  const updateApp = useCallback(async (app: AppRecord) => {
+    await db.updateApp(app)
+    generationRef.current += 1
+    setState((prev) => ({
+      ...prev,
+      apps: prev.apps.map((existing) => (existing.id === app.id ? app : existing)),
+    }))
+  }, [])
+
+  const deleteApp = useCallback(async (id: string) => {
+    await db.deleteApp(id)
+    generationRef.current += 1
+    setState((prev) => ({
+      ...prev,
+      apps: prev.apps.filter((app) => app.id !== id),
+    }))
   }, [])
 
   const saveWorkflow = useCallback(async (workflow: Workflow) => {
@@ -293,6 +320,9 @@ export function DataProvider({ children }: DataProviderProps) {
       addMember,
       updateMember,
       deleteMember,
+      addApp,
+      updateApp,
+      deleteApp,
       saveWorkflow,
       resetWorkflow,
       exportData,
@@ -313,6 +343,9 @@ export function DataProvider({ children }: DataProviderProps) {
       importData,
       saveSnapshot,
       restoreSnapshot,
+      addApp,
+      updateApp,
+      deleteApp,
       deleteSnapshot,
     ],
   )

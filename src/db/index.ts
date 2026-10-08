@@ -1,18 +1,19 @@
 // IndexedDB data layer for the workflow manager.
 import { openDB } from 'idb'
 import type { DBSchema, IDBPDatabase } from 'idb'
-import type { TeamMember, Workflow, WorkflowSnapshot } from '../types'
+import type { AppRecord, TeamMember, Workflow, WorkflowSnapshot } from '../types'
 import { seedMembers } from './seedMembers'
 import { seedWorkflow } from './seedWorkflow'
 
 export const DB_NAME = 'workflow-manager'
 /** Bump this and add an `oldVersion < N` block in `upgrade` for every schema change. */
-export const DB_VERSION = 3
+export const DB_VERSION = 4
 
 const MEMBERS_STORE = 'members'
 const WORKFLOWS_STORE = 'workflows'
 const META_STORE = 'meta'
 const SNAPSHOTS_STORE = 'snapshots'
+const APPS_STORE = 'apps'
 const SEEDED_KEY = 'seeded'
 
 /** Most snapshots kept per workflow. Saving a new one removes the oldest beyond this. */
@@ -35,6 +36,10 @@ interface WorkflowManagerDB extends DBSchema {
     key: string
     value: WorkflowSnapshot
     indexes: { 'by-workflow': string }
+  }
+  apps: {
+    key: string
+    value: AppRecord
   }
 }
 
@@ -77,7 +82,11 @@ function getDb(): Promise<Db> {
           void workflows.clear()
           void workflows.put(seedWorkflow)
         }
-        // if (oldVersion < 4) { ...future migration... }
+        if (oldVersion < 4) {
+          // Records of the apps tracked in the workflow.
+          db.createObjectStore(APPS_STORE, { keyPath: 'id' })
+        }
+        // if (oldVersion < 5) { ...future migration... }
       },
       blocking() {
         // Another tab wants to upgrade the schema: release our connection.
@@ -165,6 +174,35 @@ export function deleteMemberAndUnassign(id: string): Promise<number> {
     await tx.done
     return unassigned
   })
+}
+
+/** Returns all tracked apps. */
+export function getAllApps(): Promise<AppRecord[]> {
+  return run('load apps', (db) => db.getAll(APPS_STORE))
+}
+
+/** Adds a new app record. Fails if an app with the same id already exists. */
+export function addApp(app: AppRecord): Promise<void> {
+  return run('add app', async (db) => {
+    await db.add(APPS_STORE, app)
+  })
+}
+
+/** Updates an existing app record. Fails if the app does not exist. */
+export function updateApp(app: AppRecord): Promise<void> {
+  return run('update app', async (db) => {
+    const tx = db.transaction(APPS_STORE, 'readwrite')
+    const existing = await tx.store.get(app.id)
+    if (!existing) {
+      throw new DbError(`App "${app.id}" does not exist`)
+    }
+    await Promise.all([tx.store.put(app), tx.done])
+  })
+}
+
+/** Deletes an app record by id. */
+export function deleteApp(id: string): Promise<void> {
+  return run('delete app', (db) => db.delete(APPS_STORE, id))
 }
 
 /** Returns the workflow with the given id, or undefined if it is not stored. */

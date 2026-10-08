@@ -1,6 +1,6 @@
 import { createContext } from 'react'
 
-import type { TeamMember, Workflow, WorkflowSnapshot } from '../types'
+import type { AppRecord, TeamMember, Workflow, WorkflowSnapshot } from '../types'
 
 /**
  * Where the shared data is in its life cycle.
@@ -19,6 +19,8 @@ export interface DataState {
   /** A clear, user-facing message when status is 'error', otherwise null. */
   error: string | null
   members: TeamMember[]
+  /** The tracked apps. Empty when none have been saved yet. */
+  apps: AppRecord[]
   /** The stored workflow, or null when none is stored yet or it could not be loaded. */
   workflow: Workflow | null
   /** Saved snapshots of the workflow, newest first. Empty when there are none or no workflow. */
@@ -34,6 +36,13 @@ export interface MemberActions {
    * referenced it. Resolves with the number of workflow nodes that lost their owner.
    */
   deleteMember: (id: string) => Promise<number>
+}
+
+/** Write actions for apps. Each writes to IndexedDB first, then updates the shared state. */
+export interface AppActions {
+  addApp: (app: AppRecord) => Promise<void>
+  updateApp: (app: AppRecord) => Promise<void>
+  deleteApp: (id: string) => Promise<void>
 }
 
 /** What an import did, or why it could not be done. Problems with the file are returned, not thrown. */
@@ -83,7 +92,11 @@ export interface WorkflowActions {
 }
 
 /** The complete value held by the data context. */
-export interface DataContextValue extends DataState, MemberActions, WorkflowActions {
+export interface DataContextValue
+  extends DataState,
+    MemberActions,
+    AppActions,
+    WorkflowActions {
   /** Re-reads members and workflow from IndexedDB, for example to retry after an error. */
   reload: ReloadAction
 }

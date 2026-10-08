@@ -2,6 +2,7 @@ import { useContext, useMemo } from 'react'
 
 import { DataContext } from './dataContext'
 import type {
+  AppActions,
   DataContextValue,
   DataState,
   MemberActions,
@@ -12,6 +13,10 @@ import type {
 /** What useMembers returns: the shared load status, the members and the member write actions. */
 export type UseMembersResult = Pick<DataState, 'status' | 'error' | 'members'> &
   MemberActions & { reload: ReloadAction }
+
+/** What useApps returns: the shared load status, the tracked apps and the app write actions. */
+export type UseAppsResult = Pick<DataState, 'status' | 'error' | 'apps'> &
+  AppActions & { reload: ReloadAction }
 
 /** What useWorkflow returns: the shared load status, the workflow and the workflow write actions. */
 export type UseWorkflowResult = Pick<DataState, 'status' | 'error' | 'workflow'> &
@@ -50,6 +55,17 @@ export function useMembers(): UseMembersResult {
   return useMemo(
     () => ({ status, error, members, addMember, updateMember, deleteMember, reload }),
     [status, error, members, addMember, updateMember, deleteMember, reload],
+  )
+}
+
+/** Shared tracked apps, their load status and the actions that change them. */
+export function useApps(): UseAppsResult {
+  const { status, error, apps, addApp, updateApp, deleteApp, reload } =
+    useDataContext('useApps')
+
+  return useMemo(
+    () => ({ status, error, apps, addApp, updateApp, deleteApp, reload }),
+    [status, error, apps, addApp, updateApp, deleteApp, reload],
   )
 }
 
