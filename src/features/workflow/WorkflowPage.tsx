@@ -161,6 +161,40 @@ function WorkflowEditor({
     return selected.length === 1 ? selected[0] : null
   }, [nodes])
 
+  const hasSelection = useMemo(() => nodes.some((node) => node.selected), [nodes])
+
+  // While a step is selected, every step and line that is not that step or directly
+  // connected to it is dimmed, as in the example workflow. The stored graph state is
+  // left alone: only the copies handed to React Flow carry the extra class names.
+  const { displayNodes, displayEdges } = useMemo(() => {
+    if (!selectedNode) return { displayNodes: nodes, displayEdges: edges }
+    const connectedEdgeIds = new Set<string>()
+    const connectedNodeIds = new Set<string>([selectedNode.id])
+    for (const edge of edges) {
+      if (edge.source === selectedNode.id || edge.target === selectedNode.id) {
+        connectedEdgeIds.add(edge.id)
+        connectedNodeIds.add(edge.source)
+        connectedNodeIds.add(edge.target)
+      }
+    }
+    const dimmedNodes = nodes.map((node): WorkflowFlowNode => {
+      if (!isWorkflowCardNode(node)) return node
+      return {
+        ...node,
+        className: connectedNodeIds.has(node.id) ? 'is-highlighted' : 'is-dimmed',
+      }
+    })
+    const dimmedEdges = edges.map(
+      (edge): WorkflowFlowEdge => ({
+        ...edge,
+        className: `${edge.className ?? ''} ${
+          connectedEdgeIds.has(edge.id) ? 'is-highlighted' : 'is-dimmed'
+        }`.trim(),
+      }),
+    )
+    return { displayNodes: dimmedNodes, displayEdges: dimmedEdges }
+  }, [nodes, edges, selectedNode])
+
   const handleNodesChange = useCallback(
     (changes: NodeChange<WorkflowFlowNode>[]) => {
       setNodes((current) => applyNodeChanges(changes, current))
@@ -270,18 +304,20 @@ function WorkflowEditor({
       setNodes((current) =>
         current.map((node): WorkflowFlowNode => {
           if (node.id !== id || !isWorkflowCardNode(node)) return node
-          return {
-            ...node,
-            type: changes.nodeType,
-            data: {
-              label: changes.label,
-              description: changes.description,
-              nodeType: changes.nodeType,
-              status: changes.status,
-              group: node.data.group,
-              ...(changes.ownerId ? { ownerId: changes.ownerId } : {}),
-            },
+          // Keep the lane, column, owner name and shape of the example workflow.
+          const data = {
+            ...node.data,
+            label: changes.label,
+            description: changes.description,
+            nodeType: changes.nodeType,
+            status: changes.status,
           }
+          if (changes.ownerId) {
+            data.ownerId = changes.ownerId
+          } else {
+            delete data.ownerId
+          }
+          return { ...node, type: changes.nodeType, data }
         }),
       )
       markChanged()
@@ -311,7 +347,14 @@ function WorkflowEditor({
         current.map((edge) =>
           edge.id === id
             ? {
-                ...createFlowEdge(id, edge.source, edge.target, changes.kind, changes.label),
+                ...createFlowEdge(
+                  id,
+                  edge.source,
+                  edge.target,
+                  changes.kind,
+                  changes.label,
+                  changes.style,
+                ),
                 selected: edge.selected,
               }
             : edge,
@@ -372,6 +415,14 @@ function WorkflowEditor({
         >
           Add node
         </button>
+        <button
+          type="button"
+          className="workflow-toolbar__button"
+          onClick={handleClosePanel}
+          disabled={!hasSelection}
+        >
+          Clear selection
+        </button>
         {confirmingReset ? (
           <span
             className="workflow-toolbar__confirm"
@@ -428,13 +479,14 @@ function WorkflowEditor({
         <div
           className="workflow-page__canvas"
           role="region"
-          aria-label="Workflow diagram. Drag a node to move it and select a node to open its details."
+          aria-label="Workflow diagram. Drag a node to move it. Select a node to open its details and dim the steps that are not connected to it."
           ref={canvasRef}
         >
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
+            nodes={displayNodes}
+            edges={displayEdges}
             nodeTypes={nodeTypes}
+            onPaneClick={handleClosePanel}
             onNodesChange={handleNodesChange}
             onEdgesChange={handleEdgesChange}
             onConnect={handleConnect}
@@ -507,11 +559,16 @@ export default function WorkflowPage() {
   return (
     <section className="workflow-page" aria-labelledby="workflow-heading">
       <div className="workflow-page__header">
-        <h1 id="workflow-heading">Workflow</h1>
+        <h1 id="workflow-heading">
+          Company workflow{' '}
+          <span className="workflow-page__subtitle">// closed loop</span>
+        </h1>
         <p className="workflow-page__hint">
-          Scroll to zoom, drag the background to pan, drag a node to move it and
-          select a node for details. Dashed red outlines mark areas that still
-          need definition.
+          Every request enters at its start, runs through its lane and ends at
+          done. Select a step to see what it does: the steps and lines that are
+          not connected to it dim, and Clear selection brings them back. Scroll
+          to zoom, drag the background to pan and drag a node to move it. Dashed
+          red outlines mark areas that still need definition.
         </p>
       </div>
 

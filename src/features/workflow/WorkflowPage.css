@@ -16,6 +16,14 @@
 
 .workflow-page__header h1 {
   margin: 0;
+  font-family: var(--font-mono, ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.workflow-page__subtitle {
+  color: var(--color-text-muted);
+  font-weight: 400;
 }
 
 .workflow-page__hint {
@@ -110,6 +118,7 @@
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.08em;
+  font-family: var(--font-mono, ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace);
   text-transform: uppercase;
   color: var(--color-text-muted);
 }
@@ -173,10 +182,69 @@
   outline-offset: 2px;
 }
 
+/* Node shapes of the example workflow: start/end, process, decision and artifact. */
+
+.workflow-node--shape-terminal {
+  --node-accent: var(--color-node-terminal, var(--color-text-muted));
+  align-items: center;
+  text-align: center;
+  border-width: 2px;
+  border-color: var(--node-accent);
+  border-radius: 999px;
+}
+
+.workflow-node--shape-process {
+  border-radius: var(--radius-md);
+}
+
+.workflow-node--shape-decision {
+  --node-accent: var(--color-node-decision);
+  background-color: var(--color-node-decision-bg);
+  border-width: 2px;
+  border-color: var(--node-accent);
+  border-radius: var(--radius-sm);
+}
+
+.workflow-node--shape-artifact {
+  --node-accent: var(--color-node-artifact);
+  background-color: var(--color-node-artifact-bg);
+  border-style: dashed;
+  border-left-style: solid;
+  border-radius: var(--radius-sm);
+}
+
+.workflow-node__owner {
+  font-family: var(--font-mono, ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace);
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
 .workflow-node--needs-definition {
   border-color: var(--color-needs-definition);
   border-style: dashed;
   border-left-style: solid;
+}
+
+/* Dimmed state: while a step is selected, steps and lines not connected to it fade back. */
+
+.workflow-page__canvas .react-flow__node.is-dimmed {
+  opacity: 0.3;
+}
+
+.workflow-page__canvas .react-flow__edge.is-dimmed {
+  opacity: 0.12;
+}
+
+.workflow-page__canvas .react-flow__node,
+.workflow-page__canvas .react-flow__edge {
+  transition: opacity 0.15s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workflow-page__canvas .react-flow__node,
+  .workflow-page__canvas .react-flow__edge {
+    transition: none;
+  }
 }
 
 .workflow-node__header {
@@ -236,6 +304,18 @@
 .flow-edge--trigger .react-flow__edge-path {
   stroke: var(--color-node-actor);
   stroke-dasharray: 2 4;
+}
+
+/* Line styles of the example workflow: feedback loops and failure paths are dashed and coloured. */
+
+.flow-edge--feedback .react-flow__edge-path {
+  stroke: var(--color-feedback, var(--color-node-artifact));
+  stroke-dasharray: 6 4;
+}
+
+.flow-edge--failure .react-flow__edge-path {
+  stroke: var(--color-failure, var(--color-danger));
+  stroke-dasharray: 10 3 3 3;
 }
 
 .workflow-page__canvas .react-flow__edge-text {
@@ -349,6 +429,12 @@
   border: 2px dashed var(--color-needs-definition);
 }
 
+.workflow-legend__swatch--terminal {
+  border-width: 2px;
+  border-color: var(--color-node-terminal, var(--color-text-muted));
+  border-radius: 999px;
+}
+
 .workflow-legend__line-sample {
   flex: none;
   width: 2.5rem;
@@ -373,6 +459,20 @@
 .workflow-legend__line--trigger {
   stroke: var(--color-node-actor);
   stroke-dasharray: 2 4;
+}
+
+.workflow-legend__line--flow {
+  stroke: var(--color-text-muted);
+}
+
+.workflow-legend__line--feedback {
+  stroke: var(--color-feedback, var(--color-node-artifact));
+  stroke-dasharray: 6 4;
+}
+
+.workflow-legend__line--failure {
+  stroke: var(--color-failure, var(--color-danger));
+  stroke-dasharray: 10 3 3 3;
 }
 
 @media (min-width: 768px) {

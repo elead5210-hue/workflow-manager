@@ -17,6 +17,15 @@ export type UseMembersResult = Pick<DataState, 'status' | 'error' | 'members'> &
 export type UseWorkflowResult = Pick<DataState, 'status' | 'error' | 'workflow'> &
   WorkflowActions & { reload: ReloadAction }
 
+/** What useSnapshots returns: the workflow, its saved snapshots and the actions that change the history. */
+export type UseSnapshotsResult = Pick<
+  DataState,
+  'status' | 'error' | 'workflow' | 'snapshots'
+> &
+  Pick<WorkflowActions, 'saveSnapshot' | 'restoreSnapshot' | 'deleteSnapshot'> & {
+    reload: ReloadAction
+  }
+
 /** Reads the shared data context, throwing a clear error when there is no provider above. */
 function useDataContext(hookName: string): DataContextValue {
   const context = useContext(DataContext)
@@ -44,13 +53,88 @@ export function useMembers(): UseMembersResult {
   )
 }
 
-/** The shared workflow, its load status and the actions that change it. */
+/**
+ * The shared workflow, its load status and the actions that change it, including
+ * exporting the data to a JSON file, importing it again and managing snapshots.
+ */
 export function useWorkflow(): UseWorkflowResult {
-  const { status, error, workflow, saveWorkflow, resetWorkflow, reload } =
-    useDataContext('useWorkflow')
+  const {
+    status,
+    error,
+    workflow,
+    saveWorkflow,
+    resetWorkflow,
+    exportData,
+    importData,
+    saveSnapshot,
+    restoreSnapshot,
+    deleteSnapshot,
+    reload,
+  } = useDataContext('useWorkflow')
 
   return useMemo(
-    () => ({ status, error, workflow, saveWorkflow, resetWorkflow, reload }),
-    [status, error, workflow, saveWorkflow, resetWorkflow, reload],
+    () => ({
+      status,
+      error,
+      workflow,
+      saveWorkflow,
+      resetWorkflow,
+      exportData,
+      importData,
+      saveSnapshot,
+      restoreSnapshot,
+      deleteSnapshot,
+      reload,
+    }),
+    [
+      status,
+      error,
+      workflow,
+      saveWorkflow,
+      resetWorkflow,
+      exportData,
+      importData,
+      saveSnapshot,
+      restoreSnapshot,
+      deleteSnapshot,
+      reload,
+    ],
+  )
+}
+
+/** The workflow's saved snapshots, newest first, and the actions that save, restore and delete them. */
+export function useSnapshots(): UseSnapshotsResult {
+  const {
+    status,
+    error,
+    workflow,
+    snapshots,
+    saveSnapshot,
+    restoreSnapshot,
+    deleteSnapshot,
+    reload,
+  } = useDataContext('useSnapshots')
+
+  return useMemo(
+    () => ({
+      status,
+      error,
+      workflow,
+      snapshots,
+      saveSnapshot,
+      restoreSnapshot,
+      deleteSnapshot,
+      reload,
+    }),
+    [
+      status,
+      error,
+      workflow,
+      snapshots,
+      saveSnapshot,
+      restoreSnapshot,
+      deleteSnapshot,
+      reload,
+    ],
   )
 }

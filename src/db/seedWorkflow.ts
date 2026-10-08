@@ -2,6 +2,7 @@ import type {
   Workflow,
   WorkflowEdge,
   WorkflowEdgeKind,
+  WorkflowEdgeStyle,
   WorkflowNode,
   WorkflowNodeStatus,
   WorkflowNodeType,
@@ -34,6 +35,8 @@ function node(
     type,
     description,
     group,
+    lane: group,
+    column,
     position: { x: column * COLUMN, y: row * ROW },
     ...(options.ownerId ? { ownerId: options.ownerId } : {}),
     ...(options.status ? { status: options.status } : {}),
@@ -45,8 +48,16 @@ function edge(
   target: string,
   label: string,
   kind: WorkflowEdgeKind,
+  style?: WorkflowEdgeStyle,
 ): WorkflowEdge {
-  return { id: `edge-${source}--${target}`, source, target, label, kind }
+  return {
+    id: `edge-${source}--${target}`,
+    source,
+    target,
+    label,
+    kind,
+    ...(style ? { style } : {}),
+  }
 }
 
 const PAUL = 'member-paul'
@@ -395,7 +406,7 @@ const edges: WorkflowEdge[] = [
   edge('if-github', 'if-test', 'Pull', 'handoff'),
   edge('if-test', 'if-breaks', 'Test result', 'data'),
   edge('if-breaks', 'if-done', 'No', 'trigger'),
-  edge('if-breaks', 'if-roadmap', 'Yes: new roadmap', 'trigger'),
+  edge('if-breaks', 'if-roadmap', 'Yes: new roadmap', 'trigger', 'failure'),
 
   // PenEd branch
   edge('pe-admin', 'pe-tree', 'Builds', 'data'),
@@ -411,7 +422,13 @@ const edges: WorkflowEdge[] = [
   edge('pt-roadmap', 'pt-files', 'Run roadmap', 'trigger'),
   edge('pt-files', 'pt-added', 'Add tool', 'data'),
   edge('pt-added', 'pt-prompt', 'New tool schema', 'trigger'),
-  edge('pt-prompt', 'pe-content-roadmap', 'Feedback: updated schemas', 'data'),
+  edge(
+    'pt-prompt',
+    'pe-content-roadmap',
+    'Feedback: updated schemas',
+    'data',
+    'feedback',
+  ),
   edge('pe-lms', 'pt-frame', 'Displayed', 'data'),
 
   // Design branch

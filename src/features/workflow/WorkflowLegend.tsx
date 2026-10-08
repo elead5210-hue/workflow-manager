@@ -1,27 +1,24 @@
-import type { WorkflowEdgeKind, WorkflowNodeType } from '../../types'
+import type { WorkflowEdgeStyle, WorkflowNodeShape } from '../../types'
 
 interface NodeTypeEntry {
-  type: WorkflowNodeType
+  /** The node shape of the example workflow. It also names the swatch class. */
+  type: WorkflowNodeShape
   label: string
   description: string
 }
 
 interface EdgeKindEntry {
-  kind: WorkflowEdgeKind
+  /** The line style of the example workflow. It also names the line class. */
+  kind: WorkflowEdgeStyle
   label: string
   description: string
 }
 
 const NODE_TYPE_ENTRIES: NodeTypeEntry[] = [
   {
-    type: 'actor',
-    label: 'Actor',
-    description: 'A person or team role who does the work.',
-  },
-  {
-    type: 'system',
-    label: 'System',
-    description: 'An app or service that takes part in the process.',
+    type: 'terminal',
+    label: 'Start / end',
+    description: 'Where a request enters the workflow or where it finishes.',
   },
   {
     type: 'process',
@@ -29,32 +26,32 @@ const NODE_TYPE_ENTRIES: NodeTypeEntry[] = [
     description: 'A step or activity in the workflow.',
   },
   {
-    type: 'artifact',
-    label: 'Artifact',
-    description: 'Something that is produced or passed on, such as a roadmap or a file.',
-  },
-  {
     type: 'decision',
     label: 'Decision',
     description: 'A point where the flow can go different ways.',
+  },
+  {
+    type: 'artifact',
+    label: 'Artifact',
+    description: 'Something that is produced or passed on, such as a roadmap or a file.',
   },
 ]
 
 const EDGE_KIND_ENTRIES: EdgeKindEntry[] = [
   {
-    kind: 'data',
-    label: 'Data',
-    description: 'Information or files move from one node to the next.',
+    kind: 'flow',
+    label: 'Flow',
+    description: 'The normal path from one step to the next.',
   },
   {
-    kind: 'handoff',
-    label: 'Handoff',
-    description: 'Work is passed from one owner or system to another.',
+    kind: 'feedback',
+    label: 'Feedback',
+    description: 'A dashed line that sends a result back to an earlier step.',
   },
   {
-    kind: 'trigger',
-    label: 'Trigger',
-    description: 'Something that happens in one node starts the next one.',
+    kind: 'failure',
+    label: 'Failure',
+    description: 'A dashed line taken when a step fails or something breaks.',
   },
 ]
 
@@ -71,7 +68,7 @@ export function WorkflowLegend() {
       <div className="workflow-legend__body">
         <section className="workflow-legend__group" aria-labelledby="legend-nodes-heading">
           <h2 id="legend-nodes-heading" className="workflow-legend__title">
-            Node types
+            Node shapes
           </h2>
           <ul className="workflow-legend__list">
             {NODE_TYPE_ENTRIES.map((entry) => (
@@ -102,7 +99,7 @@ export function WorkflowLegend() {
 
         <section className="workflow-legend__group" aria-labelledby="legend-edges-heading">
           <h2 id="legend-edges-heading" className="workflow-legend__title">
-            Connection types
+            Line styles
           </h2>
           <ul className="workflow-legend__list">
             {EDGE_KIND_ENTRIES.map((entry) => (

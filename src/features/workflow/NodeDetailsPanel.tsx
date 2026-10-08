@@ -5,6 +5,8 @@ import type { Node } from '@xyflow/react'
 import type {
   TeamMember,
   WorkflowEdgeKind,
+  WorkflowEdgeStyle,
+  WorkflowNodeShape,
   WorkflowNodeStatus,
   WorkflowNodeType,
 } from '../../types'
@@ -34,6 +36,8 @@ export interface NodeChanges {
 export interface EdgeChanges {
   label: string
   kind: WorkflowEdgeKind
+  /** Line style of the example workflow: flow, feedback or failure. */
+  style?: WorkflowEdgeStyle
 }
 
 export interface NodeDetailsPanelProps {
@@ -71,6 +75,32 @@ const EDGE_KIND_OPTIONS: { value: WorkflowEdgeKind; label: string }[] = [
   { value: 'trigger', label: 'Trigger' },
 ]
 
+/** The node shapes of the example workflow, shown in the details of a selected step. */
+const SHAPE_OPTIONS: { value: WorkflowNodeShape; label: string }[] = [
+  { value: 'terminal', label: 'Start / end' },
+  { value: 'process', label: 'Process' },
+  { value: 'decision', label: 'Decision' },
+  { value: 'artifact', label: 'Artifact' },
+]
+
+/** The line styles of the example workflow. */
+const EDGE_STYLE_OPTIONS: { value: WorkflowEdgeStyle; label: string }[] = [
+  { value: 'flow', label: 'Flow' },
+  { value: 'feedback', label: 'Feedback' },
+  { value: 'failure', label: 'Failure' },
+]
+
+/** The shape a node is drawn with: its stored shape, or one that follows its type. */
+function shapeFor(
+  nodeType: WorkflowNodeType,
+  shape?: WorkflowNodeShape,
+): WorkflowNodeShape {
+  if (shape) return shape
+  if (nodeType === 'decision') return 'decision'
+  if (nodeType === 'artifact') return 'artifact'
+  return 'process'
+}
+
 function labelFor<T extends string>(
   options: { value: T; label: string }[],
   value: T,
@@ -94,6 +124,7 @@ interface EdgeRowProps {
 function EdgeRow({ edge, direction, otherLabel, onUpdate, onDelete }: EdgeRowProps) {
   const storedLabel = edgeLabelText(edge)
   const kind: WorkflowEdgeKind = edge.data?.kind ?? 'data'
+  const style: WorkflowEdgeStyle = edge.data?.style ?? 'flow'
   const [draftLabel, setDraftLabel] = useState(storedLabel)
 
   // Keep the draft in step when the edge changes from outside this row.
@@ -103,7 +134,7 @@ function EdgeRow({ edge, direction, otherLabel, onUpdate, onDelete }: EdgeRowPro
 
   const commitLabel = () => {
     const next = draftLabel.trim()
-    if (next !== storedLabel) onUpdate(edge.id, { label: next, kind })
+    if (next !== storedLabel) onUpdate(edge.id, { label: next, kind, style })
     setDraftLabel(next)
   }
 
@@ -145,10 +176,32 @@ function EdgeRow({ edge, direction, otherLabel, onUpdate, onDelete }: EdgeRowPro
               onUpdate(edge.id, {
                 label: draftLabel.trim(),
                 kind: event.target.value as WorkflowEdgeKind,
+                style,
               })
             }
           >
             {EDGE_KIND_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="node-panel__field" htmlFor={`${idBase}-style`}>
+          <span className="node-panel__field-label">Line style</span>
+          <select
+            id={`${idBase}-style`}
+            className="node-panel__select"
+            value={style}
+            onChange={(event) =>
+              onUpdate(edge.id, {
+                label: draftLabel.trim(),
+                kind,
+                style: event.target.value as WorkflowEdgeStyle,
+              })
+            }
+          >
+            {EDGE_STYLE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -254,6 +307,7 @@ function NodeDetails({
   }
 
   const needsDefinition = data.status === 'needs-definition'
+  const shape = shapeFor(data.nodeType, data.shape)
   const fieldId = (name: string) => `node-panel-${node.id}-${name}`
 
   return (
@@ -265,7 +319,7 @@ function NodeDetails({
       <header className="node-panel__header">
         <div className="node-panel__title-group">
           <p className="node-panel__eyebrow">
-            {labelFor(NODE_TYPE_OPTIONS, data.nodeType)} · {data.group}
+            {labelFor(SHAPE_OPTIONS, shape)} · {data.lane ?? data.group}
           </p>
           <h2
             id="node-panel-heading"
@@ -401,7 +455,7 @@ function NodeDetails({
         <>
           <dl className="node-panel__details">
             <div className="node-panel__detail">
-              <dt>Description</dt>
+              <dt>What this step does</dt>
               <dd>
                 {data.description ? (
                   <p className="node-panel__description">{data.description}</p>
@@ -428,9 +482,19 @@ function NodeDetails({
                     </span>
                   )
                 ) : (
-                  <span className="node-panel__muted">No owner assigned.</span>
+                  <span className="node-panel__muted">
+                    {data.ownerLabel ?? 'No owner assigned.'}
+                  </span>
                 )}
               </dd>
+            </div>
+            <div className="node-panel__detail">
+              <dt>Lane</dt>
+              <dd>{data.lane ?? data.group}</dd>
+            </div>
+            <div className="node-panel__detail">
+              <dt>Shape</dt>
+              <dd>{labelFor(SHAPE_OPTIONS, shape)}</dd>
             </div>
             <div className="node-panel__detail">
               <dt>Status</dt>

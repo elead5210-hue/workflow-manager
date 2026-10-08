@@ -4,7 +4,9 @@ import type {
   Workflow,
   WorkflowEdge,
   WorkflowEdgeKind,
+  WorkflowEdgeStyle,
   WorkflowNode,
+  WorkflowNodeShape,
   WorkflowNodeStatus,
   WorkflowNodeType,
 } from '../../types'
@@ -38,6 +40,13 @@ export type WorkflowFlowNodeData = {
   status: WorkflowNodeStatus
   group: string
   ownerId?: string
+  /** Lane and column from the example's lane-and-column layout, kept so they survive editing. */
+  lane?: string
+  column?: number
+  /** Display name of an owner who is not a stored team member. */
+  ownerLabel?: string
+  /** Visual shape of the node (start/end, process, decision or artifact). */
+  shape?: WorkflowNodeShape
 }
 
 /** Data carried by a swimlane background node. */
@@ -48,6 +57,8 @@ export type SwimlaneNodeData = {
 /** Data carried by an edge on the canvas. */
 export type WorkflowFlowEdgeData = {
   kind: WorkflowEdgeKind
+  /** Line style: normal flow, feedback loop or failure path. */
+  style?: WorkflowEdgeStyle
 }
 
 export type WorkflowFlowNode =
@@ -66,6 +77,15 @@ const ANIMATED_KINDS: ReadonlySet<WorkflowEdgeKind> = new Set<WorkflowEdgeKind>(
   'trigger',
   'handoff',
 ])
+
+/** Class names for an edge: one per kind, plus one for a feedback or failure line style. */
+function edgeClassName(
+  kind: WorkflowEdgeKind,
+  style?: WorkflowEdgeStyle,
+): string {
+  const base = `flow-edge flow-edge--${kind}`
+  return style && style !== 'flow' ? `${base} flow-edge--${style}` : base
+}
 
 function swimlaneId(group: string): string {
   return `lane-${group}`
@@ -138,6 +158,10 @@ export function mapWorkflowToFlow(workflow: Workflow): FlowGraph {
       status: node.status ?? 'defined',
       group: node.group,
       ...(node.ownerId ? { ownerId: node.ownerId } : {}),
+      ...(node.lane ? { lane: node.lane } : {}),
+      ...(node.column !== undefined ? { column: node.column } : {}),
+      ...(node.ownerLabel ? { ownerLabel: node.ownerLabel } : {}),
+      ...(node.shape ? { shape: node.shape } : {}),
     },
     zIndex: 1,
   }))
@@ -153,9 +177,9 @@ export function mapWorkflowToFlow(workflow: Workflow): FlowGraph {
       type: 'smoothstep',
       label: edge.label || undefined,
       animated: ANIMATED_KINDS.has(edge.kind),
-      className: `flow-edge flow-edge--${edge.kind}`,
+      className: edgeClassName(edge.kind, edge.style),
       markerEnd: { type: MarkerType.ArrowClosed },
-      data: { kind: edge.kind },
+      data: { kind: edge.kind, ...(edge.style ? { style: edge.style } : {}) },
       zIndex: 2,
     }))
 
@@ -214,6 +238,10 @@ export function mapFlowToWorkflow(
       position: { x: node.position.x, y: node.position.y },
     }
     if (data.ownerId) stored.ownerId = data.ownerId
+    if (data.lane) stored.lane = data.lane
+    if (data.column !== undefined) stored.column = data.column
+    if (data.ownerLabel) stored.ownerLabel = data.ownerLabel
+    if (data.shape) stored.shape = data.shape
     if (data.status === 'needs-definition') stored.status = data.status
     return stored
   })
@@ -228,6 +256,7 @@ export function mapFlowToWorkflow(
       target: edge.target,
       label: typeof edge.label === 'string' ? edge.label : '',
       kind: edge.data?.kind ?? 'data',
+      ...(edge.data?.style ? { style: edge.data.style } : {}),
     }))
 
   return {
@@ -246,6 +275,7 @@ export function createFlowEdge(
   target: string,
   kind: WorkflowEdgeKind,
   label = '',
+  style?: WorkflowEdgeStyle,
 ): WorkflowFlowEdge {
   return {
     id,
@@ -254,9 +284,9 @@ export function createFlowEdge(
     type: 'smoothstep',
     label: label || undefined,
     animated: ANIMATED_KINDS.has(kind),
-    className: `flow-edge flow-edge--${kind}`,
+    className: edgeClassName(kind, style),
     markerEnd: { type: MarkerType.ArrowClosed },
-    data: { kind },
+    data: { kind, ...(style ? { style } : {}) },
     zIndex: 2,
   }
 }

@@ -28,6 +28,12 @@ export type WorkflowEdgeKind = 'data' | 'handoff' | 'trigger'
 /** Whether a workflow node is fully described or still needs clarification. */
 export type WorkflowNodeStatus = 'defined' | 'needs-definition'
 
+/** The visual shape of a workflow node, matching the kinds used in the example workflow. */
+export type WorkflowNodeShape = 'terminal' | 'process' | 'decision' | 'artifact'
+
+/** The line style of a workflow edge: the normal flow, a feedback loop or a failure path. */
+export type WorkflowEdgeStyle = 'flow' | 'feedback' | 'failure'
+
 /** A position on the workflow canvas. */
 export interface Position {
   x: number
@@ -47,6 +53,14 @@ export interface WorkflowNode {
   position: Position
   /** Defaults to 'defined' when omitted. 'needs-definition' marks vague areas of the process. */
   status?: WorkflowNodeStatus
+  /** Optional lane (row) the node sits in, for lane-and-column layouts such as the example workflow. */
+  lane?: string
+  /** Optional column index within the lane, used to place the node in a lane-and-column layout. */
+  column?: number
+  /** Optional display name of the owner, for owners that are not stored TeamMember records. */
+  ownerLabel?: string
+  /** Optional visual shape of the node. When omitted the shape follows the node type. */
+  shape?: WorkflowNodeShape
 }
 
 /** A directed connection between two workflow nodes. */
@@ -58,6 +72,8 @@ export interface WorkflowEdge {
   target: string
   label: string
   kind: WorkflowEdgeKind
+  /** Optional line style. When omitted the edge is drawn as a normal flow line. */
+  style?: WorkflowEdgeStyle
 }
 
 /** A complete workflow made of nodes and the edges between them. */
