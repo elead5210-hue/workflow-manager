@@ -75,7 +75,7 @@ function WorkflowCard({ data, selected }: WorkflowCardProps) {
       />
       <div className="workflow-node__header">
         <span className="workflow-node__type">
-          {data.shape ? SHAPE_LABELS[shape] : TYPE_LABELS[data.nodeType]}
+          {data.shape ? SHAPE_LABELS[shape] : TYPE_LABELS[data.nodeType as WorkflowNodeType]}
         </span>
         {needsDefinition ? (
           <span
