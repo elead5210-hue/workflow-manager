@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Company workflow: closed loop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f5f7;--lane:#eceef2;--lane2:#e4e7ed;--card:#fff;--ink:#1b2230;--mute:#667085;--line:#8a94a6;
+--term:#1f9d55;--proc:#2563eb;--data:#7c3aed;--dec:#c47f00;--fb:#d9480f;--bad:#d92d20;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--lane:#151a23;--lane2:#1a202b;--card:#1f2633;--ink:#e6eaf2;--mute:#8b95a8;--line:#5d6a80;
+--term:#5fd38a;--proc:#6cb0ff;--data:#b99af5;--dec:#ebb94a;--fb:#ff8a5c;--bad:#ff6b5e}}
+:root[data-theme="dark"]{--bg:#10141b;--lane:#151a23;--lane2:#1a202b;--card:#1f2633;--ink:#e6eaf2;--mute:#8b95a8;--line:#5d6a80;
+--term:#5fd38a;--proc:#6cb0ff;--data:#b99af5;--dec:#ebb94a;--fb:#ff8a5c;--bad:#ff6b5e}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+header{padding:20px 20px 8px;max-width:980px}
+h1{font-size:20px;margin:0 0 4px;font-weight:600}
+h1 span{color:var(--mute);font-weight:400}
+p{margin:0;color:var(--mute);max-width:70ch}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px 20px;color:var(--mute);font-size:12px}
+.legend i{display:inline-block;width:14px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+#info{margin:4px 20px 10px;padding:10px 14px;border:1px solid var(--line);border-left:4px solid var(--proc);border-radius:4px;background:var(--card);min-height:44px;max-width:980px}
+#info b{display:block}
+#info small{color:var(--mute)}
+.wrap{overflow-x:auto;padding:0 20px 28px}
+svg{display:block;min-width:1700px;width:1700px;height:auto}
+text{font-family:inherit}
+.node{cursor:pointer}
+.node text{fill:var(--ink);font-size:11px}
+.node .shape{fill:var(--card);stroke-width:1.6}
+.edge path{fill:none;stroke-width:1.5}
+.edge text{font-size:10px;fill:var(--mute);stroke:var(--bg);stroke-width:4;paint-order:stroke}
+.lane-l{font-size:12px;fill:var(--ink);font-weight:600}
+.lane-s{font-size:10.5px;fill:var(--mute)}
+svg.dim .edge:not(.on){opacity:.12}
+svg.dim .node:not(.on){opacity:.3}
+.node:focus-visible{outline:2px solid var(--proc)}
+button{font:inherit;font-size:12px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:3px 10px;cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+<h1>company.workflow <span>// closed loop</span></h1>
+<p>Every request enters at START, runs through its lane, and returns through review to the next request. Select any step to trace its inputs and outputs.</p>
+</header>
+<div class="legend">
+<span><i style="border-color:var(--term)"></i>start / end</span>
+<span><i style="border-color:var(--proc)"></i>process</span>
+<span><i style="border-color:var(--dec)"></i>decision</span>
+<span><i style="border-color:var(--data)"></i>artifact</span>
+<span><i style="border-color:var(--line)"></i>flow</span>
+<span><i style="border-color:var(--fb);border-top-style:dashed"></i>feedback</span>
+<span><i style="border-color:var(--bad);border-top-style:dashed"></i>needs definition</span>
+<button id="clr">clear selection</button>
+</div>
+<div id="info"><small>Select a step to see what it does.</small></div>
+<div class="wrap"><svg id="g" viewBox="0 0 1700 860" role="img" aria-label="Closed-loop company workflow flowchart"></svg></div>
+<script>
+const LW=120,CW=190,LH=130,T=50,NW=150,NH=60;
+const lanes=[['Design','@shelly'],['IntentForge','@paul'],['PenEd','@paul'],['PenEdTools','admin'],['Finance','@dan'],['Marketing','@bianca']];
+// id,label,kind(t,p,s,d,o),lane,col,owner,description,needsDef
+const N=[
+['start','START: new request','t',0,0,'','A design change, curriculum, tool idea, invoice or campaign brief enters the system.'],
+['d1','Edit UI shell','p',0,1,'@shelly','Shelly changes layouts in the lightweight UI shell of the client apps.'],
+['d2','Convert changes to roadmaps','p',0,2,'@shelly','Turns design changes into per-system roadmaps. Process not yet defined.',1],
+['d3','Roadmap per system','o',0,3,'','One roadmap for each affected system, such as front end and API.'],
+['i1','Create roadmap','p',1,0,'@paul','A roadmap of goals and file-level tasks is created in IntentForge.'],
+['i2','Prompt AI, paste response','p',1,1,'','Prompt is copied to an AI and the response pasted back (manual copy-paste).'],
+['i3','Save updates to server','s',1,2,'','Generated project updates are saved to the IntentForge server.'],
+['i4','Push to GitHub','s',1,3,'','The updated project is pushed to GitHub.'],
+['i5','Pull, run and test','p',1,4,'@paul','Paul pulls the project, runs it and tests it.'],
+['i6','Breaks?','d',1,5,'@paul','If something breaks, a new roadmap is created to fix it. Otherwise the change ships.'],
+['i7','Apps updated','s',1,6,'','PenEd, Invoice Capture and PenEd Marketing now match the change.'],
+['p1','Admin builds curriculum tree','s',2,0,'@paul','The PenEd admin app builds curriculum, subject and lesson structure.'],
+['p2','AI splits lessons into outcomes','p',2,1,'','Each lesson is broken into outcomes and objectives by AI.'],
+['p3','Creator receives lesson','s',2,2,'','The creator app receives the lesson with its outcomes and objectives.'],
+['p4','Content roadmap with tool schemas','p',2,3,'','A content roadmap is built for the lesson, including schemas of available tools.'],
+['p5','AI returns shaped data','p',2,4,'','The AI returns content data shaped to match the tool schemas.'],
+['p6','Content generated for LMS','o',2,5,'','The finished lesson content for the learning management system.'],
+['t1','Suggest and describe tool','p',3,0,'','How new tools are suggested and described before becoming a roadmap. Not yet defined.',1],
+['t2','Admin describes tool','p',3,1,'admin','The admin describes the new tool in the admin app.'],
+['t3','Appears as creator roadmap','o',3,2,'','The described tool shows up as a roadmap in the creator app.'],
+['t4','Run roadmap: tool files','p',3,3,'','Running the roadmap generates the files for the tool.'],
+['t5','Add to PenEdTools','s',3,4,'','The generated tool joins the PenEdTools collection.'],
+['t6','Prompt system picks up schema','p',3,5,'','The prompt system automatically updates with the new tool schema and feeds content generation.'],
+['t7','Display content via frame','o',3,6,'','Generated content is displayed using the tool through a frame.'],
+['f1','Invoice Capture','s',4,0,'@dan','Dan\'s app for capturing supplier invoices.'],
+['f2','Convert to Excel','o',4,1,'','Captured invoices become an Excel spreadsheet.'],
+['f3','Attach to job and accounts','p',4,2,'@dan','Invoices are attached to a job and tracked.'],
+['f4','Services, stock, tracking','p',4,3,'@dan','Further services, stock and accounting tracking. Planned, not yet defined.',1],
+['m1','Campaign brief','o',5,0,'@shelly / @paul','A campaign brief issued by Shelly or Paul.'],
+['m2','Paste into PenEd Marketing','p',5,1,'@bianca','Bianca starts a campaign and pastes in the brief.'],
+['m3','Roadmap builds milestones','p',5,2,'','A roadmap generates the milestone list for the campaign.'],
+['m4','Milestone hierarchy','o',5,3,'@bianca','The campaign milestones, organised as a hierarchy.'],
+['R','Review results, log feedback','p',2,7,'@paul','Everything shipped is reviewed and feedback becomes the next request. This closes the loop.']
+];
+// source,target,label,kind,opts
+const E=[
+['start','d1','request'],['d1','d2','changes'],['d2','d3','converted'],['d3','i1','roadmaps'],
+['start','p1','','flow',{sa:'l',ta:'l',bus:1}],['start','f1','','flow',{sa:'l',ta:'l',bus:1}],['start','m1','','flow',{sa:'l',ta:'l',bus:1}],
+['i1','i2','prompt'],['i2','i3','applied'],['i3','i4','push'],['i4','i5','pull'],['i5','i6','result'],
+['i6','i7','no: ship','branch'],['i6','i1','yes: new roadmap','feedback'],
+['p1','p2','lessons'],['p2','p3','objectives'],['p3','p4','creates'],['p4','p5','prompt + schemas'],['p5','p6','generates'],
+['p4','t1','no tool fits','feedback',{sdx:-25}],
+['t1','t2','suggested'],['t2','t3','roadmap'],['t3','t4','run'],['t4','t5','add'],['t5','t6','schema'],
+['t6','p4','updated schemas','feedback',{sdx:-25,tdx:25}],
+['p6','t7','display','flow',{sdx:25}],
+['f1','f2','export'],['f2','f3','attach'],['f3','f4','future'],
+['m1','m2','paste'],['m2','m3','kick off'],['m3','m4','generates'],
+['i7','R','','flow',{sa:'r',ta:'t',via:'x'}],['t7','R','','flow',{sa:'r',ta:'b',via:'x'}],
+['f4','R','','flow',{sa:'r',ta:'b',via:'x'}],['m4','R','','flow',{sa:'r',ta:'b',via:'x'}],
+['R','start','next request','feedback',{sa:'r',ta:'t',loop:1}]
+];
+const svg=document.getElementById('g'),NS='http://www.w3.org/2000/svg';
+const el=(t,a={},p=svg,txt)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;p.appendChild(e);return e};
+const nd={};
+N.forEach(([id,label,k,lane,col,owner,desc,flag])=>{nd[id]={id,label,k,lane,col,owner,desc,flag,cx:235+col*CW,cy:T+lane*LH+LH/2,w:NW,h:k==='d'?80:NH}});
+const anc=(n,s,dx=0)=>({r:[n.cx+n.w/2,n.cy],l:[n.cx-n.w/2,n.cy],t:[n.cx+dx,n.cy-n.h/2],b:[n.cx+dx,n.cy+n.h/2]}[s]);
+// lanes
+lanes.forEach((l,i)=>{
+ el('rect',{x:0,y:T+i*LH,width:1700,height:LH,fill:i%2?'var(--lane2)':'var(--lane)'});
+ el('text',{x:14,y:T+i*LH+LH/2-2,class:'lane-l'},svg,l[0]);
+ el('text',{x:14,y:T+i*LH+LH/2+14,class:'lane-s'},svg,l[1]);
+});
+const color={flow:'var(--line)',branch:'var(--dec)',feedback:'var(--fb)'};
+const edgeEls=[];
+E.forEach(([s,t,label,kind='flow',o={}])=>{
+ const S=nd[s],Tn=nd[t];let pts;
+ if(o.sa){
+  const a=anc(S,o.sa),b=anc(Tn,o.ta);
+  if(o.bus)pts=[a,[140,a[1]],[140,b[1]],b];
+  else if(o.loop)pts=[a,[1670,a[1]],[1670,24],[Tn.cx,24],b];
+  else pts=[a,[b[0],a[1]],b];
+ }else if(S.lane===Tn.lane){
+  if(Tn.col>S.col)pts=[anc(S,'r'),anc(Tn,'l')];
+  else{const a=anc(S,'b'),b=anc(Tn,'b'),y=a[1]+28;pts=[a,[a[0],y],[b[0],y],b]}
+ }else{
+  const down=Tn.lane>S.lane,a=anc(S,down?'b':'t',o.sdx||0),b=anc(Tn,down?'t':'b',o.tdx||0);
+  const gy=T+(S.lane+(down?1:0))*LH;pts=[a,[a[0],gy],[b[0],gy],b];
+ }
+ const g=el('g',{class:'edge'});
+ const c=kind==='flow'&&(S.flag||Tn.flag)?'var(--bad)':color[kind];
+ const dashed=kind==='feedback'||(S.flag||Tn.flag);
+ el('path',{d:'M'+pts.map(p=>p.join(',')).join('L'),stroke:c,'stroke-dasharray':dashed?'6 4':'none','marker-end':'url(#ar)','stroke-linejoin':'round'},g);
+ if(label){let best=0,bi=0;for(let i=0;i<pts.length-1;i++){const d=Math.abs(pts[i+1][0]-pts[i][0])+Math.abs(pts[i+1][1]-pts[i][1]);if(d>best){best=d;bi=i}}
+  const p=pts[bi],q=pts[bi+1];el('text',{x:(p[0]+q[0])/2,y:(p[1]+q[1])/2-5,'text-anchor':'middle'},g,label)}
+ g.dataset.s=s;g.dataset.t=t;edgeEls.push(g);
+});
+// arrow marker
+const defs=el('defs',{},svg,null);
+const mk=el('marker',{id:'ar',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:7,markerHeight:7,orient:'auto'},defs);
+el('path',{d:'M0,1 L10,5 L0,9 z',fill:'context-stroke'},mk);
+svg.insertBefore(defs,svg.firstChild);
+// nodes
+const kc={t:'var(--term)',p:'var(--proc)',s:'var(--proc)',d:'var(--dec)',o:'var(--data)'};
+function wrap(s,n){const w=s.split(' ');const L=[];let c='';w.forEach(x=>{if((c+' '+x).trim().length>n){L.push(c);c=x}else c=(c+' '+x).trim()});L.push(c);return L}
+const info=document.getElementById('info');
+Object.values(nd).forEach(n=>{
+ const g=el('g',{class:'node',tabindex:0,role:'button','aria-label':n.label});
+ const x=n.cx-n.w/2,y=n.cy-n.h/2,st=n.flag?'var(--bad)':kc[n.k];
+ const a={class:'shape',stroke:st};if(n.flag)a['stroke-dasharray']='5 3';
+ if(n.k==='t')el('rect',{...a,x,y:y+6,width:n.w,height:n.h-12,rx:(n.h-12)/2},g);
+ else if(n.k==='d')el('polygon',{...a,points:`${n.cx},${y} ${x+n.w},${n.cy} ${n.cx},${y+n.h} ${x},${n.cy}`},g);
+ else if(n.k==='o'){const k=14;el('polygon',{...a,points:`${x+k},${y} ${x+n.w},${y} ${x+n.w-k},${y+n.h} ${x},${y+n.h}`},g)}
+ else{el('rect',{...a,x,y,width:n.w,height:n.h,rx:3},g);if(n.k==='s')el('line',{x1:x+7,y1:y,x2:x+7,y2:y+n.h,stroke:st,'stroke-width':1.6},g)}
+ const L=wrap(n.label,n.k==='d'?9:n.k==='o'?18:20);
+ L.forEach((l,i)=>el('text',{x:n.cx+(n.k==='s'?3:0),y:n.cy+4+(i-(L.length-1)/2)*13,'text-anchor':'middle'},g,l));
+ if(n.flag){el('circle',{cx:x+n.w-4,cy:y+2,r:8,fill:'var(--bad)'},g);el('text',{x:x+n.w-4,y:y+6,'text-anchor':'middle',style:'fill:#fff;font-weight:600'},g,'?')}
+ const pick=()=>sel(n.id);
+ g.addEventListener('click',pick);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}});
+ n.g=g;
+});
+function sel(id){
+ const n=nd[id];svg.classList.add('dim');
+ Object.values(nd).forEach(m=>m.g.classList.remove('on'));edgeEls.forEach(e=>e.classList.remove('on'));
+ n.g.classList.add('on');
+ const ins=[],outs=[];
+ edgeEls.forEach(e=>{if(e.dataset.s===id){e.classList.add('on');nd[e.dataset.t].g.classList.add('on');outs.push(nd[e.dataset.t].label)}
+  if(e.dataset.t===id){e.classList.add('on');nd[e.dataset.s].g.classList.add('on');ins.push(nd[e.dataset.s].label)}});
+ info.style.borderLeftColor=n.flag?'var(--bad)':kc[n.k];
+ info.innerHTML='';
+ const b=document.createElement('b');b.textContent=n.label+(n.owner?'  ('+n.owner+')':'')+(n.flag?'  [needs definition]':'');
+ const d=document.createElement('div');d.textContent=n.desc;
+ const s=document.createElement('small');s.textContent='in: '+(ins.join(', ')||'none')+'  |  out: '+(outs.join(', ')||'none');
+ info.append(b,d,s);
+}
+document.getElementById('clr').onclick=()=>{svg.classList.remove('dim');Object.values(nd).forEach(m=>m.g.classList.remove('on'));edgeEls.forEach(e=>e.classList.remove('on'));info.innerHTML='<small>Select a step to see what it does.</small>'};
+</script>
+</body>
+</html>
