@@ -100,11 +100,19 @@ function WorkflowCard({ data, selected }: WorkflowCardProps) {
   )
 }
 
-/** Background band that groups the nodes of one lane (IntentForge, PenEd, ...), labelled at its left edge. */
+/**
+ * Background band that groups the nodes of one lane (Design, IntentForge, ...). The lane name and
+ * its owner handle sit in the left gutter, and the band tone alternates from lane to lane.
+ */
 function Swimlane({ data }: SwimlaneProps) {
   return (
-    <div className="swimlane" aria-hidden="true" data-lane={data.label}>
+    <div
+      className={`swimlane swimlane--tone-${data.tone}`}
+      aria-hidden="true"
+      data-lane={data.label}
+    >
       <span className="swimlane__label">{data.label}</span>
+      {data.owner ? <span className="swimlane__owner">{data.owner}</span> : null}
     </div>
   )
 }

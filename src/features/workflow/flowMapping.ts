@@ -14,23 +14,34 @@ import type {
 /** React Flow node type used for the swimlane background of a group. */
 export const SWIMLANE_NODE_TYPE = 'swimlane'
 
-/** Approximate rendered size of a workflow node, used to size the swimlanes. */
-export const NODE_WIDTH = 200
-export const NODE_HEIGHT = 80
+/** Rendered size of a workflow node in the example flowchart, used to size the swimlanes. */
+export const NODE_WIDTH = 150
+export const NODE_HEIGHT = 60
 
+/** Height of one lane row, and the width of the left gutter that holds the lane name. */
+const LANE_HEIGHT = 130
+const LANE_GUTTER = 160
 const LANE_PADDING_X = 40
-const LANE_PADDING_TOP = 56
-const LANE_PADDING_BOTTOM = 40
 
 /** Preferred order of the swimlanes. Groups not listed here are added after these. */
 export const LANE_ORDER = [
+  'Design',
   'IntentForge',
   'PenEd',
   'PenEdTools',
-  'Design',
   'Finance',
   'Marketing',
 ]
+
+/** Owner handle shown under the lane name in the gutter, as in the example flowchart. */
+const LANE_OWNERS: Record<string, string> = {
+  Design: '@shelly',
+  IntentForge: '@paul',
+  PenEd: '@paul',
+  PenEdTools: 'admin',
+  Finance: '@dan',
+  Marketing: '@bianca',
+}
 
 /** Data carried by a workflow node on the canvas. */
 export type WorkflowFlowNodeData = {
@@ -52,6 +63,10 @@ export type WorkflowFlowNodeData = {
 /** Data carried by a swimlane background node. */
 export type SwimlaneNodeData = {
   label: string
+  /** Owner handle shown under the lane name, when the lane has one. */
+  owner?: string
+  /** Background tone of the lane band: lanes alternate between 0 and 1. */
+  tone: 0 | 1
 }
 
 /** Data carried by an edge on the canvas. */
@@ -117,20 +132,33 @@ function buildSwimlanes(workflow: Workflow): WorkflowFlowNode[] {
     }
   }
 
-  return orderGroups([...bounds.keys()]).map((group) => {
+  // Every lane spans the full width of the diagram, with a gutter on the left for its name.
+  let left = Infinity
+  let right = -Infinity
+  for (const box of bounds.values()) {
+    left = Math.min(left, box.minX)
+    right = Math.max(right, box.maxX)
+  }
+  const laneX = left - LANE_GUTTER
+  const laneWidth = right - left + NODE_WIDTH + LANE_GUTTER + LANE_PADDING_X
+
+  return orderGroups([...bounds.keys()]).map((group, index) => {
     const box = bounds.get(group)!
-    const width = box.maxX - box.minX + NODE_WIDTH + LANE_PADDING_X * 2
-    const height =
-      box.maxY - box.minY + NODE_HEIGHT + LANE_PADDING_TOP + LANE_PADDING_BOTTOM
+    const verticalPadding = (LANE_HEIGHT - NODE_HEIGHT) / 2
+    const height = Math.max(
+      LANE_HEIGHT,
+      box.maxY - box.minY + NODE_HEIGHT + verticalPadding * 2,
+    )
+    const owner = LANE_OWNERS[group]
     return {
       id: swimlaneId(group),
       type: SWIMLANE_NODE_TYPE,
       position: {
-        x: box.minX - LANE_PADDING_X,
-        y: box.minY - LANE_PADDING_TOP,
+        x: laneX,
+        y: box.minY - verticalPadding,
       },
-      data: { label: group },
-      style: { width, height },
+      data: { label: group, ...(owner ? { owner } : {}), tone: index % 2 === 0 ? 0 : 1 },
+      style: { width: laneWidth, height },
       draggable: false,
       selectable: false,
       connectable: false,
