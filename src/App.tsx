@@ -3,6 +3,7 @@ import Layout from './components/Layout'
 import { DataProvider } from './data/DataProvider'
 import WorkflowPage from './features/workflow/WorkflowPage'
 import TeamPage from './features/team/TeamPage'
+import AppsPage from './features/apps/AppsPage'
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
           <Route index element={<Navigate to="/workflow" replace />} />
           <Route path="/workflow" element={<WorkflowPage />} />
           <Route path="/team" element={<TeamPage />} />
+          <Route path="/apps" element={<AppsPage />} />
           <Route path="*" element={<Navigate to="/workflow" replace />} />
         </Route>
       </Routes>

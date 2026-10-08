@@ -4,6 +4,7 @@ import './Layout.css'
 const navLinks = [
   { to: '/workflow', label: 'Workflow' },
   { to: '/team', label: 'Team' },
+  { to: '/apps', label: 'Apps' },
 ]
 
 export default function Layout() {
