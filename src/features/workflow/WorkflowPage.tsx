@@ -47,6 +47,12 @@ const MINIMAP_COLORS: Record<string, string> = {
 
 const FIT_VIEW_OPTIONS = { padding: 0.15 }
 
+/** The diagram opens at a readable 100% scale in the top-left corner instead of being fitted into view. */
+const INITIAL_VIEWPORT = { x: 16, y: 8, zoom: 1 }
+
+/** Width, in pixels, the canvas keeps so the 1700px-wide layout fits at 100% zoom. The page scrolls sideways when the window is narrower. */
+const CANVAS_MIN_WIDTH = 1720
+
 function minimapNodeColor(node: { type?: string }): string {
   return MINIMAP_COLORS[node.type ?? ''] ?? '#868e96'
 }
@@ -188,6 +194,30 @@ function WorkflowEditor({
   }, [nodes])
 
   const hasSelection = useMemo(() => nodes.some((node) => node.selected), [nodes])
+
+  // What the info bar above the diagram shows about the selected step: its name, owner,
+  // description and the names of the steps that lead into it and out of it.
+  const stepInfo = useMemo(() => {
+    if (!selectedNode) return null
+    const nameOf = (id: string): string => {
+      const found = nodes.find((node) => node.id === id)
+      return found && isWorkflowCardNode(found) ? found.data.label : id
+    }
+    const incoming = edges
+      .filter((edge) => edge.target === selectedNode.id)
+      .map((edge) => nameOf(edge.source))
+    const outgoing = edges
+      .filter((edge) => edge.source === selectedNode.id)
+      .map((edge) => nameOf(edge.target))
+    const member = members.find((item) => item.id === selectedNode.data.ownerId)
+    return {
+      name: selectedNode.data.label,
+      owner: member ? member.name : (selectedNode.data.ownerLabel ?? ''),
+      description: selectedNode.data.description,
+      incoming,
+      outgoing,
+    }
+  }, [selectedNode, nodes, edges, members])
 
   // While a step is selected, every step and line that is not that step or directly
   // connected to it is dimmed, as in the example workflow. The stored graph state is
@@ -450,6 +480,30 @@ function WorkflowEditor({
 
   return (
     <div className="workflow-editor">
+      <WorkflowLegend onClearSelection={handleClosePanel} hasSelection={hasSelection} />
+
+      <div className="workflow-info" role="status" aria-live="polite">
+        {stepInfo ? (
+          <>
+            <span className="workflow-info__name">{stepInfo.name}</span>
+            {stepInfo.owner ? (
+              <span className="workflow-info__owner">{stepInfo.owner}</span>
+            ) : null}
+            <span className="workflow-info__description">
+              {stepInfo.description || 'No description yet.'}
+            </span>
+            <span className="workflow-info__flow">
+              in: {stepInfo.incoming.length > 0 ? stepInfo.incoming.join(', ') : 'none'} | out:{' '}
+              {stepInfo.outgoing.length > 0 ? stepInfo.outgoing.join(', ') : 'none'}
+            </span>
+          </>
+        ) : (
+          <span className="workflow-info__hint">
+            Select a step to see its owner, what it does and what leads into and out of it.
+          </span>
+        )}
+      </div>
+
       <div
         className="workflow-toolbar"
         role="toolbar"
@@ -461,14 +515,6 @@ function WorkflowEditor({
           onClick={handleAddNode}
         >
           Add node
-        </button>
-        <button
-          type="button"
-          className="workflow-toolbar__button"
-          onClick={handleClosePanel}
-          disabled={!hasSelection}
-        >
-          Clear selection
         </button>
         {confirmingReset ? (
           <span
@@ -524,10 +570,15 @@ function WorkflowEditor({
 
       <div className="workflow-editor__body">
         <div
+          className="workflow-page__scroll"
+          style={{ flex: '1 1 0', minWidth: 0, overflowX: 'auto' }}
+        >
+        <div
           className="workflow-page__canvas"
           role="region"
           aria-label="Workflow diagram. Drag a node to move it. Select a node to open its details and dim the steps that are not connected to it."
           ref={canvasRef}
+          style={{ minWidth: CANVAS_MIN_WIDTH }}
         >
           <ReactFlow
             nodes={displayNodes}
@@ -544,8 +595,7 @@ function WorkflowEditor({
             onInit={(instance) => {
               flowRef.current = instance
             }}
-            fitView
-            fitViewOptions={FIT_VIEW_OPTIONS}
+            defaultViewport={INITIAL_VIEWPORT}
             minZoom={0.1}
             maxZoom={2}
             proOptions={{ hideAttribution: false }}
@@ -560,6 +610,7 @@ function WorkflowEditor({
               ariaLabel="Workflow minimap"
             />
           </ReactFlow>
+        </div>
         </div>
 
         <NodeDetailsPanel
@@ -608,15 +659,13 @@ export default function WorkflowPage() {
     <section className="workflow-page" aria-labelledby="workflow-heading">
       <div className="workflow-page__header">
         <h1 id="workflow-heading">
-          Company workflow{' '}
+          company.workflow{' '}
           <span className="workflow-page__subtitle">// closed loop</span>
         </h1>
         <p className="workflow-page__hint">
-          Every request enters at its start, runs through its lane and ends at
-          done. Select a step to see what it does: the steps and lines that are
-          not connected to it dim, and Clear selection brings them back. Scroll
-          to zoom, drag the background to pan and drag a node to move it. Dashed
-          red outlines mark areas that still need definition.
+          Every request enters at START, runs through its lane and ends in review, which feeds the
+          next request. Select a step to trace it, and look for the dashed red outlines that still
+          need definition.
         </p>
       </div>
 
@@ -680,7 +729,6 @@ export default function WorkflowPage() {
 
       {status === 'ready' && workflow ? (
         <>
-          <WorkflowLegend />
           <WorkflowEditor
             key={editorKey}
             workflow={workflow}

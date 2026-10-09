@@ -27,9 +27,11 @@
 }
 
 .workflow-page__hint {
+  flex: 1 1 24rem;
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-family: var(--font-mono, ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace);
+  font-size: 12px;
 }
 
 /* Diagram container */
@@ -314,45 +316,71 @@
   border: 1.5px solid var(--color-surface);
 }
 
-/* Edges: colour and dash pattern per kind so meaning is not carried by colour alone */
+/* Edges: drawn by the custom edge component in WorkflowEdges.tsx. Each edge sits in a group with
+   one tone class: flow (grey), decision (amber), feedback (dashed orange) or bad (dashed red,
+   when either end needs definition). The tone sets --workflow-edge-color, which colours both
+   the line and the arrowhead. Dashes carry the meaning too, so it is not carried by colour alone. */
 
-.flow-edge .react-flow__edge-path {
+.workflow-page__canvas .workflow-edge {
+  --workflow-edge-color: var(--color-text-muted);
+  /* The halo behind a label matches the lane background, so the line looks cut behind the text. */
+  --workflow-edge-halo: color-mix(in srgb, var(--color-surface-alt) 85%, var(--color-surface));
+}
+
+.workflow-page__canvas .workflow-edge .react-flow__edge-path {
+  fill: none;
+  stroke: var(--workflow-edge-color);
   stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
 }
 
-.flow-edge--data .react-flow__edge-path {
-  stroke: var(--color-text-muted);
+/* Normal flow: grey. */
+.workflow-page__canvas .workflow-edge--flow {
+  --workflow-edge-color: var(--color-text-muted);
 }
 
-.flow-edge--handoff .react-flow__edge-path {
-  stroke: var(--color-node-system);
-  stroke-dasharray: 8 4;
+/* Branches that leave a decision: amber. */
+.workflow-page__canvas .workflow-edge--decision {
+  --workflow-edge-color: var(--color-dec);
 }
 
-.flow-edge--trigger .react-flow__edge-path {
-  stroke: var(--color-node-actor);
-  stroke-dasharray: 2 4;
+/* Feedback loops: dashed orange. */
+.workflow-page__canvas .workflow-edge--feedback {
+  --workflow-edge-color: var(--color-node-actor);
 }
 
-/* Line styles of the example workflow: feedback loops and failure paths are dashed and coloured. */
-
-.flow-edge--feedback .react-flow__edge-path {
-  stroke: var(--color-feedback, var(--color-node-artifact));
+.workflow-page__canvas .workflow-edge--feedback .react-flow__edge-path {
   stroke-dasharray: 6 4;
 }
 
-.flow-edge--failure .react-flow__edge-path {
-  stroke: var(--color-failure, var(--color-danger));
-  stroke-dasharray: 10 3 3 3;
+/* Either end needs definition, or the edge is a failure path: dashed red. */
+.workflow-page__canvas .workflow-edge--bad {
+  --workflow-edge-color: var(--color-bad);
 }
 
-.workflow-page__canvas .react-flow__edge-text {
-  fill: var(--color-text);
-  font-size: 11px;
+.workflow-page__canvas .workflow-edge--bad .react-flow__edge-path {
+  stroke-dasharray: 5 4;
 }
 
-.workflow-page__canvas .react-flow__edge-textbg {
-  fill: var(--color-surface);
+/* The step an edge touches is selected: its lines get a little heavier. */
+.workflow-page__canvas .react-flow__edge.is-highlighted .workflow-edge .react-flow__edge-path {
+  stroke-width: 2.25;
+}
+
+/* A selected edge, including its arrowhead, is drawn in the primary colour. */
+.workflow-page__canvas .react-flow__edge.selected .workflow-edge {
+  --workflow-edge-color: var(--color-primary);
+}
+
+/* Labels: the halo text is drawn first, and the label text sits on top of it. */
+.workflow-page__canvas .workflow-edge__label {
+  pointer-events: none;
+  user-select: none;
+}
+
+.workflow-page__canvas .workflow-edge__label-halo {
+  paint-order: stroke fill;
 }
 
 .workflow-page__canvas .react-flow__edge.selected .react-flow__edge-path {
@@ -360,133 +388,95 @@
   stroke-width: 2.5;
 }
 
-/* Legend: explains node types, the needs-definition marker and edge kinds */
+/* Legend: one inline row above the diagram, as in the example. Each entry is a small swatch of
+   the node shape or a sample of the line style, followed by its name, and the 'clear selection'
+   button sits at the end. */
 
 .workflow-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono, ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace);
+  font-size: 11px;
+  color: var(--color-text-muted);
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: 0 1px 2px var(--color-shadow);
 }
 
-.workflow-legend__summary {
+.workflow-legend__items {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  min-height: var(--touch-target);
-  padding: var(--space-2) var(--space-4);
-  font-weight: var(--font-weight-bold);
-  cursor: pointer;
-}
-
-.workflow-legend__body {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-4) var(--space-6);
-  padding: var(--space-2) var(--space-4) var(--space-4);
-}
-
-.workflow-legend__title {
-  margin: 0 0 var(--space-2);
-  font-size: var(--font-size-sm);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.workflow-legend__list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-2) var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .workflow-legend__item {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  font-size: var(--font-size-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .workflow-legend__text {
   min-width: 0;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
+/* Swatches: the same thin outline in the kind colour that the diagram nodes use. */
 .workflow-legend__swatch {
   flex: none;
+  box-sizing: border-box;
   width: 1.5rem;
-  height: 1.25rem;
-  margin-top: 0.1rem;
+  height: 0.9rem;
   background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-left-width: 5px;
-  border-radius: var(--radius-sm);
-}
-
-.workflow-legend__swatch--actor {
-  border-left-color: var(--color-node-actor);
-  background-color: var(--color-node-actor-bg);
-  border-radius: 0.75rem var(--radius-sm) var(--radius-sm) 0.75rem;
-}
-
-.workflow-legend__swatch--system {
-  border-left-color: var(--color-node-system);
-  background-color: var(--color-node-system-bg);
-}
-
-.workflow-legend__swatch--process {
-  border-left-color: var(--color-node-process);
-  background-color: var(--color-node-process-bg);
-}
-
-.workflow-legend__swatch--artifact {
-  border-style: dashed;
-  border-left-style: solid;
-  border-left-color: var(--color-node-artifact);
-  background-color: var(--color-node-artifact-bg);
-}
-
-.workflow-legend__swatch--decision {
-  border-left-color: var(--color-node-decision);
-  background-color: var(--color-node-decision-bg);
-}
-
-.workflow-legend__swatch--needs-definition {
-  border: 2px dashed var(--color-needs-definition);
+  border: 1.6px solid var(--color-proc);
+  border-radius: 3px;
 }
 
 .workflow-legend__swatch--terminal {
-  border-width: 2px;
-  border-color: var(--color-node-terminal, var(--color-text-muted));
+  border-color: var(--color-term);
   border-radius: 999px;
+}
+
+.workflow-legend__swatch--process {
+  border-color: var(--color-proc);
+}
+
+.workflow-legend__swatch--decision {
+  width: 0.85rem;
+  height: 0.85rem;
+  margin: 0 0.3rem;
+  border-color: var(--color-dec);
+  border-radius: 0;
+  transform: rotate(45deg);
+}
+
+.workflow-legend__swatch--artifact {
+  border-color: var(--color-data);
+  transform: skewX(-14deg);
+}
+
+.workflow-legend__swatch--needs-definition {
+  border-color: var(--color-bad);
+  border-style: dashed;
 }
 
 .workflow-legend__line-sample {
   flex: none;
   width: 2.5rem;
   height: 0.5rem;
-  margin-top: 0.5rem;
 }
 
 .workflow-legend__line {
   fill: none;
-  stroke-width: 2;
-}
-
-.workflow-legend__line--data {
-  stroke: var(--color-text-muted);
-}
-
-.workflow-legend__line--handoff {
-  stroke: var(--color-node-system);
-  stroke-dasharray: 8 4;
-}
-
-.workflow-legend__line--trigger {
-  stroke: var(--color-node-actor);
-  stroke-dasharray: 2 4;
+  stroke-width: 1.6;
 }
 
 .workflow-legend__line--flow {
@@ -494,19 +484,75 @@
 }
 
 .workflow-legend__line--feedback {
-  stroke: var(--color-feedback, var(--color-node-artifact));
+  stroke: var(--color-node-actor);
   stroke-dasharray: 6 4;
 }
 
-.workflow-legend__line--failure {
-  stroke: var(--color-failure, var(--color-danger));
-  stroke-dasharray: 10 3 3 3;
+.workflow-legend__clear {
+  padding: var(--space-1) var(--space-3);
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
-@media (min-width: 768px) {
-  .workflow-legend__body {
-    grid-template-columns: 1fr 1fr;
-  }
+.workflow-legend__clear:hover:not(:disabled) {
+  background-color: var(--color-surface-alt);
+}
+
+.workflow-legend__clear:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.workflow-legend__clear:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Step info bar above the diagram: name, owner, description and the in / out lists of the
+   selected step. */
+
+.workflow-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-4);
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono, ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.workflow-info__name {
+  font-weight: 700;
+}
+
+.workflow-info__owner {
+  color: var(--color-proc);
+}
+
+.workflow-info__description {
+  flex: 1 1 20rem;
+  min-width: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.workflow-info__flow {
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.workflow-info__hint {
+  color: var(--color-text-muted);
 }
 
 /* Editor layout: toolbar above the canvas and the details panel */
@@ -523,10 +569,16 @@
   gap: var(--space-3);
 }
 
-.workflow-editor__body .workflow-page__canvas {
+/* The canvas keeps a minimum width wide enough for the 1700px layout (set on the element), and
+   this wrapper scrolls sideways when the window is narrower. */
+.workflow-page__scroll {
   flex: 1 1 0;
-  width: auto;
   min-width: 0;
+  overflow-x: auto;
+}
+
+.workflow-editor__body .workflow-page__canvas {
+  width: 100%;
 }
 
 /* Editing toolbar and reset confirmation */
@@ -894,6 +946,11 @@
     align-items: stretch;
   }
 
+  .workflow-editor__body .workflow-page__scroll {
+    flex: none !important;
+    width: 100%;
+  }
+
   .workflow-editor__body .workflow-page__canvas {
     flex: none;
     width: 100%;
@@ -1003,9 +1060,5 @@
 
   .workflow-toolbar__confirm {
     width: 100%;
-  }
-
-  .workflow-legend__body {
-    padding: var(--space-2) var(--space-3) var(--space-3);
   }
 }

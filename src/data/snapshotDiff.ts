@@ -16,7 +16,16 @@ export type NodeField =
   | 'position'
 
 /** The editable parts of an edge that can differ between two versions. */
-export type EdgeField = 'source' | 'target' | 'label' | 'kind'
+export type EdgeField =
+  | 'source'
+  | 'target'
+  | 'label'
+  | 'kind'
+  | 'sourceSide'
+  | 'targetSide'
+  | 'sourceOffset'
+  | 'targetOffset'
+  | 'routeOffset'
 
 /** One field that differs, with both values already written as text for display. */
 export interface FieldChange<F extends string> {
@@ -185,6 +194,12 @@ function diffEdge(before: WorkflowEdge, after: WorkflowEdge): EdgeChange | null 
   collect(changes, 'target', before.target, after.target)
   collect(changes, 'label', before.label, after.label)
   collect(changes, 'kind', before.kind, after.kind)
+  // An edge without a stored route is drawn with the default route, so a missing value is shown as 'auto'.
+  collect(changes, 'sourceSide', before.sourceSide ?? '', after.sourceSide ?? '', 'auto')
+  collect(changes, 'targetSide', before.targetSide ?? '', after.targetSide ?? '', 'auto')
+  collect(changes, 'sourceOffset', formatOffset(before.sourceOffset), formatOffset(after.sourceOffset), 'auto')
+  collect(changes, 'targetOffset', formatOffset(before.targetOffset), formatOffset(after.targetOffset), 'auto')
+  collect(changes, 'routeOffset', formatOffset(before.routeOffset), formatOffset(after.routeOffset), 'auto')
 
   if (changes.length === 0) return null
   return { id: after.id, before, after, changes }
@@ -212,4 +227,9 @@ function formatPosition(position: { x: number; y: number }): string {
 
 function formatCoordinate(value: number): string {
   return String(Number(value.toFixed(2)))
+}
+
+/** An optional route offset as text. A missing offset is an empty string. */
+function formatOffset(value: number | undefined): string {
+  return value === undefined ? '' : formatCoordinate(value)
 }
